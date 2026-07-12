@@ -1,25 +1,737 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full w-full overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Início | Meu Site</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buscador de Karaokê</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        black: '#000000',
+                        warmZinc: '#121214',
+                        warmBorder: '#27272a',
+                        brand: {
+                            light: '#fef3c7', // amber-100
+                            DEFAULT: '#f59e0b', // amber-500
+                            dark: '#b45309' // amber-700
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF.js para leitura local e rápida de PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        /* Bloqueio absoluto de transbordamento horizontal */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Tema Escuro Ativo (Padrão) */
+        body.theme-dark {
+            background-color: #000000;
+            color: #f4f4f5; /* zinc-100 */
+        }
+        body.theme-dark .header-bar {
+            background-color: #000000;
+            border-color: #18181b;
+        }
+        body.theme-dark .song-card {
+            background-color: #121214;
+            border-color: #1f1f23;
+        }
+        body.theme-dark .bg-auxiliar {
+            background-color: #09090b;
+        }
+
+        /* Tema Claro Ativo */
+        body.theme-light {
+            background-color: #f4f4f5; /* zinc-100 */
+            color: #09090b; /* zinc-950 */
+        }
+        body.theme-light .header-bar {
+            background-color: #ffffff;
+            border-color: #e4e4e7;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        body.theme-light .song-card {
+            background-color: #ffffff;
+            border-color: #e4e4e7;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        body.theme-light .bg-auxiliar {
+            background-color: #e4e4e7;
+        }
+
+        /* Scrollbar discreta */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+
+        /* Marcação de termos pesquisados */
+        mark {
+            background-color: rgba(245, 158, 11, 0.18);
+            color: #d97706; /* amber-600 */
+            font-weight: 700;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+    </style>
 </head>
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="index.html">Início</a></li>
-                <li><a href="sobre.html">Sobre</a></li>
-                <li><a href="contato.html">Contato</a></li>
-            </ul>
-        </nav>
+<body class="theme-dark font-sans min-h-screen flex flex-col antialiased w-full">
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    </script>
+
+    <!-- Container para Toasts (alertas) -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-[calc(100vw-3rem)] pointer-events-none"></div>
+
+    <!-- Cabeçalho Principal -->
+    <header class="header-bar border-b sticky top-0 z-45 px-4 py-4 w-full transition-colors duration-300">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4 w-full">
+            
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-black shrink-0 shadow-sm">
+                    <i data-lucide="music-3" class="w-4.5 h-4.5 text-black font-bold"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm font-extrabold tracking-wider truncate uppercase">KARAOKÊ CLUB</h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- Botão de Troca de Tema (Claro/Escuro) -->
+                <button onclick="toggleTheme()" class="p-2 text-zinc-400 hover:text-amber-500 rounded-lg border border-zinc-800/80 hover:border-zinc-500 transition-all duration-200 bg-transparent flex items-center justify-center" title="Alternar tema claro/escuro">
+                    <i id="theme-icon" data-lucide="sun" class="w-4 h-4"></i>
+                </button>
+                
+                <!-- Botão discreto para alterar catálogo -->
+                <button onclick="triggerUpload()" id="btn-re-upload" class="hidden p-2 text-zinc-400 hover:text-amber-500 rounded-lg border border-zinc-800/80 hover:border-zinc-500 transition-all duration-200" title="Trocar arquivo catálogo">
+                    <i data-lucide="folder-open" class="w-4 h-4"></i>
+                </button>
+                
+                <!-- Indicador de Status -->
+                <span class="text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-400 border border-zinc-800 flex items-center gap-1.5" id="header-status">
+                    MODO DEMO
+                </span>
+            </div>
+        </div>
     </header>
-    
-    <main>
-        <h1>Bem-vindo ao Meu Site</h1>
-        <p>Esta é a página inicial. O site conta com um design escuro e minimalista, focado em performance e leitura.</p>
+
+    <!-- Conteúdo Centralizado e Fluido (Evita qualquer quebra lateral) -->
+    <main class="flex-1 max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6 box-border">
+        
+        <!-- SEÇÃO DE CARREGAMENTO INICIAL: Ocultada automaticamente após leitura do PDF -->
+        <section id="upload-section" class="bg-zinc-950/20 border border-dashed border-zinc-800/80 rounded-2xl p-6 md:p-8 text-center flex flex-col items-center justify-center gap-4 transition-all duration-300 w-full box-border">
+            <div class="w-12 h-12 rounded-xl bg-zinc-900/60 flex items-center justify-center text-amber-500 border border-zinc-800">
+                <i data-lucide="file-up" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-bold tracking-wide uppercase">Carregar Novo Catálogo (PDF)</h2>
+                <p class="text-xs text-zinc-500 max-w-xs mx-auto mt-1 leading-relaxed">
+                    Arraste ou clique no botão abaixo para processar localmente o arquivo de videokê.
+                </p>
+            </div>
+            
+            <div class="w-full max-w-xs mt-1">
+                <label for="pdf-uploader" class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs tracking-wider cursor-pointer transition-all select-none text-center shadow-md">
+                    <i data-lucide="folder" class="w-4 h-4"></i>
+                    SELECIONAR ARQUIVO
+                </label>
+                <input type="file" id="pdf-uploader" accept=".pdf" class="hidden">
+            </div>
+
+            <!-- Loader de Progresso de Leitura do PDF -->
+            <div id="loader-box" class="hidden w-full max-w-xs mt-4 pt-4 border-t border-zinc-900">
+                <div class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-widest">
+                    <span id="loader-status" class="text-zinc-400 flex items-center gap-1.5">
+                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500"></i>
+                        Processando...
+                    </span>
+                    <span id="loader-percent" class="text-amber-500">0%</span>
+                </div>
+                <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                    <div id="loader-bar" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">Mapeando páginas do catálogo...</p>
+            </div>
+        </section>
+
+        <!-- SEÇÃO PRINCIPAL DE PESQUISA -->
+        <section id="search-section" class="flex flex-col gap-4 w-full box-border">
+            
+            <!-- Entrada de Busca com Cores Fixas (Sempre Fundo Branco, Letras Pretas) para Máxima Visibilidade -->
+            <div class="relative w-full">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Digite música, cantor, início da letra ou código..." class="w-full bg-white text-black font-bold border-2 border-zinc-300/80 focus:border-amber-500 focus:ring-0 rounded-xl py-3.5 pl-11 pr-11 text-sm transition-all focus:outline-none shadow-md" autocomplete="off">
+                <button id="voice-btn" onclick="startVoiceSearch()" class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black transition-colors" title="Pesquisar por voz">
+                    <i data-lucide="mic" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Controles Auxiliares: Idioma & Contador de Resultados -->
+            <div class="flex items-center justify-between gap-3 w-full mt-1 flex-wrap">
+                <!-- Filtros por idioma -->
+                <div id="lang-selector" class="bg-auxiliar flex gap-1 p-1 rounded-lg border border-zinc-800/20 overflow-x-auto transition-colors duration-300">
+                    <button onclick="setLanguage('ALL')" id="lang-ALL" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none bg-amber-500 text-black shadow">TODOS</button>
+                    <button onclick="setLanguage('BRA')" id="lang-BRA" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200">🇧🇷 NACIONAL</button>
+                    <button onclick="setLanguage('EUA')" id="lang-EUA" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200">🇺🇸 INTERNACIONAL</button>
+                </div>
+
+                <!-- Resumos da busca atual -->
+                <div class="text-[10px] text-zinc-500 flex items-center gap-1.5" id="search-meta">
+                    <span id="results-count">Exibindo demonstração...</span>
+                    <span id="artist-alert" class="hidden text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider items-center gap-1">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i> Listagem completa do artista ativada
+                    </span>
+                </div>
+            </div>
+
+            <!-- LISTAGEM DE CARDS DE MÚSICA -->
+            <div id="songs-list-container" class="flex flex-col gap-2.5 w-full box-border">
+                <!-- Inserido dinamicamente por JavaScript -->
+            </div>
+
+            <!-- Botão Ver Mais (Discreto e Sutil) -->
+            <div class="flex justify-center mt-2 w-full" id="pagination-box">
+                <button onclick="loadMore()" class="px-6 py-2.5 rounded-xl border border-zinc-900 bg-zinc-950 hover:bg-zinc-900 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-zinc-200 transition-all">
+                    Carregar mais resultados
+                </button>
+            </div>
+        </section>
+
     </main>
+
+    <!-- Lista de músicas de demonstração padrão -->
+    <script>
+        const demoSongs = [
+            { code: "4321", title: "EVIDÊNCIAS", artist: "Chitãozinho & Xororó", lyrics: "E nessa loucura de dizer que não te quero...", language: "BRA" },
+            { code: "3120", title: "EDUARDO E MÔNICA", artist: "Legião Urbana", lyrics: "Quem um dia irá dizer que existe razão...", language: "BRA" },
+            { code: "1254", title: "ANNA JULIA", artist: "Los Hermanos", lyrics: "Quem te vê passar assim por nós...", language: "BRA" },
+            { code: "3990", title: "BOATE AZUL", artist: "Joaquim & Manuel", lyrics: "Doente de amor procurei um remédio na vida...", language: "BRA" },
+            { code: "4120", title: "INFIEL", artist: "Marília Mendonça", lyrics: "Isso não é uma disputa...", language: "BRA" },
+            { code: "3294", title: "VOCÊ VAI VER", artist: "Zezé Di Camargo & Luciano", lyrics: "Você pode encontrar muitos amores...", language: "BRA" },
+            { code: "3859", title: "VEM CUIDAR DE MIM", artist: "Zezé Di Camargo & Luciano", lyrics: "Eu já fiz de tudo pra esquecer...", language: "BRA" },
+            { code: "6800", title: "TRISTEZA DO JECA", artist: "Zezé Di Camargo & Luciano", lyrics: "Nestes versos tão singelos...", language: "BRA" },
+            { code: "3020", title: "ASA MORENA", artist: "Zizi Possi", lyrics: "Me faz pequena asa morena...", language: "BRA" },
+            { code: "6163", title: "A PAZ", artist: "Zizi Possi", lyrics: "A paz invadindo meu coração...", language: "BRA" },
+            { code: "1211", title: "CORSÁRIO", artist: "Zizi Possi", lyrics: "Meu coração tropical tem que...", language: "BRA" },
+            { code: "4920", title: "I'M NOT IN LOVE", artist: "10cc", lyrics: "I'm not in love so don't forget it...", language: "EUA" },
+            { code: "19807", title: "MORE THAN THIS", artist: "10000 Maniacs", lyrics: "I could feel at the time...", language: "EUA" },
+            { code: "3012", title: "COMO NOSSOS PAIS", artist: "Elis Regina", lyrics: "Não quero lhe falar meu grande amor...", language: "BRA" },
+            { code: "3410", title: "PRIMEIROS ERROS", artist: "Capital Inicial", lyrics: "Se um dia eu pudesse ver...", language: "BRA" },
+            { code: "3712", title: "O SEGUNDO SOL", artist: "Cássia Eller", lyrics: "Quando o segundo sol chegar...", language: "BRA" },
+            { code: "4589", title: "CHEIA DE MANIAS", artist: "Raça Negra", lyrics: "Cheia de manias toda dengosa...", language: "BRA" },
+            { code: "4820", title: "I WILL SURVIVE", artist: "Gloria Gaynor", lyrics: "First I was afraid, I was petrified...", language: "EUA" },
+            { code: "5210", title: "SWEET CHILD O' MINE", artist: "Guns N' Roses", lyrics: "She's got a smile that it seems to me...", language: "EUA" }
+        ];
+
+        let songs = [];
+        let currentLanguage = 'ALL';
+        let searchQuery = '';
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let currentTheme = 'dark';
+
+        window.onload = function() {
+            lucide.createIcons();
+            
+            // Carrega tema persistido
+            const savedTheme = localStorage.getItem('karaoke_theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                applyTheme('dark');
+            }
+
+            // Carrega dados locais persistidos do navegador
+            const cachedDatabase = localStorage.getItem('karaoke_database_friendly');
+            if (cachedDatabase) {
+                try {
+                    songs = JSON.parse(cachedDatabase);
+                    setCleanLayout(true);
+                } catch(e) {
+                    songs = [...demoSongs];
+                    setCleanLayout(false);
+                }
+            } else {
+                songs = [...demoSongs];
+                setCleanLayout(false);
+            }
+
+            renderSongs();
+        };
+
+        // Lógica de alternância de Tema (Escuro / Claro)
+        function toggleTheme() {
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        }
+
+        function applyTheme(theme) {
+            currentTheme = theme;
+            localStorage.setItem('karaoke_theme', theme);
+            
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+
+            if (theme === 'light') {
+                body.classList.remove('theme-dark');
+                body.classList.add('theme-light');
+                themeIcon.setAttribute('data-lucide', 'moon');
+            } else {
+                body.classList.remove('theme-light');
+                body.classList.add('theme-dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
+            }
+
+            // Recria ícones para renderizar o correto do Lucide
+            lucide.createIcons();
+            updateLangSelectorStyles();
+        }
+
+        // Garante que o seletor de linguagem combine perfeitamente com o tema
+        function updateLangSelectorStyles() {
+            const isDark = currentTheme === 'dark';
+            const sel = document.getElementById('lang-selector');
+            if (isDark) {
+                sel.className = "bg-zinc-950 flex gap-1 p-1 rounded-lg border border-zinc-900 overflow-x-auto transition-colors duration-300";
+            } else {
+                sel.className = "bg-zinc-200/80 flex gap-1 p-1 rounded-lg border border-zinc-300/40 overflow-x-auto transition-colors duration-300";
+            }
+        }
+
+        // Altera layout ao carregar um novo PDF catálogo
+        function setCleanLayout(isClean) {
+            const uploadSection = document.getElementById('upload-section');
+            const reUploadBtn = document.getElementById('btn-re-upload');
+            const statusBadge = document.getElementById('header-status');
+
+            if (isClean) {
+                uploadSection.classList.add('hidden');
+                reUploadBtn.classList.remove('hidden');
+                statusBadge.innerHTML = `CATÁLOGO ATIVO (${songs.length})`;
+                statusBadge.className = "text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center gap-1.5";
+            } else {
+                uploadSection.classList.remove('hidden');
+                reUploadBtn.classList.add('hidden');
+                statusBadge.innerHTML = `MODO DEMO`;
+                statusBadge.className = "text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-500 border border-zinc-800 flex items-center gap-1.5";
+            }
+        }
+
+        function triggerUpload() {
+            document.getElementById('pdf-uploader').click();
+        }
+
+        // LEITURA LOCAL DO ARQUIVO PDF (PDF.JS)
+        async function handlePdfUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const loaderBox = document.getElementById('loader-box');
+            const loaderBar = document.getElementById('loader-bar');
+            const loaderPercent = document.getElementById('loader-percent');
+            const loaderStatus = document.getElementById('loader-status');
+            const loaderDetails = document.getElementById('loader-details');
+
+            loaderBox.classList.remove('hidden');
+            loaderBar.style.width = '0%';
+            loaderPercent.innerText = '0%';
+            loaderStatus.innerText = 'Acessando...';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const totalPages = pdf.numPages;
+                let parsedSongs = [];
+
+                loaderDetails.innerText = `Arquivo lido. Analisando ${totalPages} páginas...`;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const items = textContent.items;
+
+                    const lineYMap = {};
+                    items.forEach(item => {
+                        const str = item.str.trim();
+                        if (!str) return;
+                        const y = Math.round(item.transform[5] * 10) / 10;
+                        
+                        let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4);
+                        if (!foundY) {
+                            foundY = y;
+                            lineYMap[foundY] = [];
+                        }
+                        lineYMap[foundY].push(item);
+                    });
+
+                    const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
+
+                    sortedYKeys.forEach(yKey => {
+                        const rowItems = lineYMap[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
+                        
+                        let columns = [];
+                        let currentCol = [];
+                        for (let k = 0; k < rowItems.length; k++) {
+                            const currentItem = rowItems[k];
+                            if (currentCol.length > 0) {
+                                const prevItem = currentCol[currentCol.length - 1];
+                                const prevRight = prevItem.transform[4] + (prevItem.width || 0);
+                                if (currentItem.transform[4] - prevRight > 55) {
+                                    columns.push(currentCol);
+                                    currentCol = [];
+                                }
+                            }
+                            currentCol.push(currentItem);
+                        }
+                        if (currentCol.length > 0) columns.push(currentCol);
+
+                        if (columns.length >= 2) {
+                            const rawTexts = columns.map(col => col.map(it => it.str).join(' ').trim());
+                            const processed = decodeCatalogFields(rawTexts);
+                            if (processed) {
+                                parsedSongs.push(processed);
+                            }
+                        }
+                    });
+
+                    const progress = Math.round((i / totalPages) * 100);
+                    loaderBar.style.width = progress + '%';
+                    loaderPercent.innerText = progress + '%';
+                    loaderDetails.innerText = `Pág. ${i} de ${totalPages} | Extraídas: ${parsedSongs.length}`;
+                }
+
+                if (parsedSongs.length === 0) {
+                    throw new Error("Não conseguimos tabular dados estruturados no arquivo carregado.");
+                }
+
+                songs = parsedSongs;
+                localStorage.setItem('karaoke_database_friendly', JSON.stringify(songs));
+                setCleanLayout(true);
+                showToast("Catálogo pronto e configurado com sucesso!", "success");
+
+                currentPage = 1;
+                searchQuery = '';
+                document.getElementById('search-input').value = '';
+                renderSongs();
+
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao importar catálogo. Verifique o arquivo.", "error");
+                loaderStatus.innerText = 'Falha';
+                loaderDetails.innerText = err.message;
+            }
+        }
+
+        // SEPARADOR DE CAMPOS DO PDF
+        function decodeCatalogFields(columns) {
+            let fields = columns.map(f => f.replace(/["]/g, '').replace(/\s+/g, ' ').trim());
+            
+            if (fields.length < 2) return null;
+
+            let artist = fields[0];
+            let titleWithCode = fields[1];
+            let lyrics = fields[2] || "Início de letra indisponível";
+            let language = fields[3] || "BRA";
+
+            if (lyrics.length <= 4 && /^(BRA|EUA|INT|ITA|JAP|ESP|FRA|ENG)$/i.test(lyrics)) {
+                language = lyrics.toUpperCase();
+                lyrics = "Início de letra indisponível";
+            }
+
+            const codeMatch = titleWithCode.match(/\b(\d{3,6})\b/);
+            if (!codeMatch) return null;
+
+            const code = codeMatch[1];
+            let title = titleWithCode.replace(code, '').replace(/\s+/g, ' ').trim();
+
+            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') return null;
+
+            return {
+                code,
+                artist,
+                title,
+                lyrics,
+                language: language.toUpperCase()
+            };
+        }
+
+        document.getElementById('pdf-uploader').addEventListener('change', handlePdfUpload);
+
+        // NAVEGAÇÃO DE FILTROS DE IDIOMA
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            ['ALL', 'BRA', 'EUA'].forEach(l => {
+                const btn = document.getElementById(`lang-${l}`);
+                if (l === lang) {
+                    btn.className = "px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none bg-amber-500 text-black shadow";
+                } else {
+                    btn.className = "px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200";
+                }
+            });
+            currentPage = 1;
+            renderSongs();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('search-input').value;
+            currentPage = 1;
+            renderSongs();
+        }
+
+        // ALGORITMO INTELIGENTE DE BUSCA DE MÚSICAS E ARTISTAS
+        function renderSongs() {
+            const container = document.getElementById('songs-list-container');
+            const paginationBox = document.getElementById('pagination-box');
+            const artistAlert = document.getElementById('artist-alert');
+
+            let listToRender = [];
+
+            // Limpa acentuação para busca precisa
+            const normQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const terms = normQuery.split(/\s+/).filter(t => t.length > 0);
+
+            let isArtistSearch = false;
+            if (normQuery.length >= 3) {
+                // Checa se o termo digitado condiz com o nome de um artista do catálogo
+                const artistMatches = songs.filter(s => {
+                    const normArtist = s.artist.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                    return normArtist.includes(normQuery);
+                });
+
+                if (artistMatches.length > 0) {
+                    isArtistSearch = true;
+                    listToRender = artistMatches;
+                }
+            }
+
+            if (!isArtistSearch) {
+                artistAlert.classList.add('hidden');
+                artistAlert.style.display = 'none';
+                
+                listToRender = songs.filter(song => {
+                    if (currentLanguage !== 'ALL') {
+                        if (currentLanguage === 'BRA' && song.language !== 'BRA') return false;
+                        if (currentLanguage === 'EUA' && song.language === 'BRA') return false;
+                    }
+
+                    if (terms.length > 0) {
+                        const normTitle = song.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normArtist = song.artist.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normLyrics = song.lyrics.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        
+                        return terms.every(term => {
+                            return normTitle.includes(term) || 
+                                   normArtist.includes(term) || 
+                                   normLyrics.includes(term) || 
+                                   song.code.includes(term);
+                        });
+                    }
+                    return true;
+                });
+            } else {
+                artistAlert.classList.remove('hidden');
+                artistAlert.style.display = 'inline-flex';
+            }
+
+            // Ordena os resultados
+            listToRender.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title));
+
+            const totalResults = listToRender.length;
+            let paginatedList = [];
+            
+            if (isArtistSearch) {
+                // Se for busca de artista, desativa limites para expor todas as faixas
+                paginatedList = listToRender;
+                paginationBox.classList.add('hidden');
+            } else {
+                paginatedList = listToRender.slice(0, currentPage * itemsPerPage);
+                if (totalResults > paginatedList.length) {
+                    paginationBox.classList.remove('hidden');
+                } else {
+                    paginationBox.classList.add('hidden');
+                }
+            }
+
+            document.getElementById('results-count').innerText = `${totalResults} resultados`;
+            buildListHTML(paginatedList, container, terms);
+        }
+
+        // RENDERIZADOR DE CARDS ADAPTATIVO (REATIVO AO TEMA SELECIONADO)
+        function buildListHTML(list, container, terms) {
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 song-card border rounded-xl">
+                        <i data-lucide="info" class="w-6 h-6 text-zinc-500 mx-auto mb-2"></i>
+                        <p class="text-xs text-zinc-500 font-semibold uppercase tracking-wider">Música não encontrada</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = list.map(song => {
+                const flag = song.language === 'BRA' ? '🇧🇷' : '🇺🇸';
+                
+                let titleHTML = song.title;
+                let artistHTML = song.artist;
+                let lyricsHTML = song.lyrics;
+                let codeHTML = song.code;
+
+                // Destaca termos buscados nos textos
+                if (terms.length > 0) {
+                    terms.forEach(term => {
+                        const regex = new RegExp(`(${term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+                        titleHTML = titleHTML.replace(regex, `<mark>$1</mark>`);
+                        artistHTML = artistHTML.replace(regex, `<mark>$1</mark>`);
+                        lyricsHTML = lyricsHTML.replace(regex, `<mark>$1</mark>`);
+                        codeHTML = codeHTML.replace(regex, `<mark>$1</mark>`);
+                    });
+                }
+
+                return `
+                    <div class="song-card border px-4 py-3.5 rounded-xl flex items-center justify-between gap-3 w-full box-border transition-colors duration-250">
+                        <div class="flex items-center gap-4 min-w-0 w-full">
+                            <!-- Código em Destaque Amber -->
+                            <div class="h-12 w-16 bg-zinc-950 border border-zinc-900/40 flex flex-col justify-center items-center rounded-lg shrink-0 select-all" title="Toque duas vezes para copiar o código">
+                                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">CÓD</span>
+                                <span class="text-sm font-black text-amber-500 tracking-wider mt-0.5">${codeHTML}</span>
+                            </div>
+
+                            <div class="min-w-0 w-full">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <h4 class="text-xs font-black tracking-wide uppercase truncate max-w-full leading-tight">${titleHTML}</h4>
+                                    <span class="text-[8px] bg-zinc-900 text-zinc-500 border border-zinc-800 px-1.5 py-0.2 rounded font-bold">${flag} ${song.language}</span>
+                                </div>
+                                <p class="text-xs font-bold text-zinc-400 truncate mt-0.5">${artistHTML}</p>
+                                <p class="text-[10px] italic text-zinc-500 truncate mt-0.5">"${lyricsHTML}"</p>
+                            </div>
+                        </div>
+
+                        <!-- Botão copiar código -->
+                        <div class="shrink-0">
+                            <button onclick="copyCode('${song.code}')" class="p-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 border border-zinc-900 rounded-lg transition-all" title="Copiar código">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function loadMore() {
+            currentPage++;
+            renderSongs();
+        }
+
+        // COPIAR CÓDIGO DA MÚSICA PARA CLIPBOARD
+        function copyCode(code) {
+            const tempInput = document.createElement("input");
+            tempInput.value = code;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy"); // Fallback robusto
+            document.body.removeChild(tempInput);
+            showToast(`Código ${code} copiado com sucesso! 📋`, "success");
+        }
+
+        // CAPTURA DE VOZ
+        function startVoiceSearch() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast("Pesquisa por voz não habilitada neste navegador.", "error");
+                return;
+            }
+
+            const rec = new SpeechRecognition();
+            rec.lang = 'pt-BR';
+            
+            const micBtn = document.getElementById('voice-btn');
+            micBtn.classList.add('text-amber-500', 'scale-110');
+            showToast("Ouvindo cantor ou música...", "info");
+
+            rec.onresult = function(e) {
+                const voiceVal = e.results[0][0].transcript;
+                document.getElementById('search-input').value = voiceVal;
+                handleSearch();
+            };
+
+            rec.onerror = function() {
+                showToast("Não entendi o áudio. Tente falar novamente.", "error");
+            };
+
+            rec.onend = function() {
+                micBtn.classList.remove('text-amber-500', 'scale-110');
+            };
+
+            rec.start();
+        }
+
+        // TOASTS DE ALERTA ADAPTATIVOS
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = "bg-zinc-950 border-zinc-800 text-zinc-200 shadow-xl";
+            let icon = "info";
+            
+            if (type === 'success') {
+                bg = "bg-zinc-950 border-amber-500/20 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.05)]";
+                icon = "check-circle-2";
+            } else if (type === 'error') {
+                bg = "bg-zinc-950 border-rose-950 text-zinc-400";
+                icon = "alert-circle";
+            }
+
+            toast.className = `p-4 rounded-xl border flex items-center gap-3 transition-all duration-300 translate-y-12 opacity-0 pointer-events-auto ${bg} max-w-full`;
+            toast.innerHTML = `
+                <span class="shrink-0">
+                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                </span>
+                <span class="text-[11px] font-bold uppercase tracking-wider break-words leading-relaxed">${msg}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-12', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-12', 'opacity-0');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
+
