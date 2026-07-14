@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BRINK FEST KARAOKÉ - Catálogo de Músicas</title>
+    <title>BRINK FEST KARAOKÊ - Catálogo de Músicas</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -142,9 +142,9 @@
 
             <!-- Título do Aplicativo com Subtítulo -->
             <div class="text-center flex flex-col items-center">
-                <h2 class="text-2xl font-black tracking-widest text-white uppercase">BRINK FEST <span class="text-amber-500">KARAOKÉ</span></h2>
+                <h2 class="text-2xl font-black tracking-widest text-white uppercase">BRINK FEST <span class="text-amber-500">KARAOKÊ</span></h2>
                 <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
-                <p id="splash-status-text" class="text-xs text-amber-500 font-semibold tracking-wider mt-4 uppercase">A carregar o catálogo...</p>
+                <p id="splash-status-text" class="text-xs text-amber-500 font-semibold tracking-wider mt-4 uppercase">A procurar o catálogo...</p>
             </div>
 
             <!-- Progresso de Carregamento & Sincronização -->
@@ -152,24 +152,24 @@
                 <div class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-widest">
                     <span id="loader-status-container" class="text-zinc-400 flex items-center gap-1.5">
                         <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500" id="spinner-icon"></i>
-                        <span id="loader-status">A iniciar transferência...</span>
+                        <span id="loader-status">A iniciar ligação...</span>
                     </span>
                     <span id="loader-percent" class="text-amber-500">0%</span>
                 </div>
                 <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
                     <div id="loader-bar" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
                 </div>
-                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">A mapear a base de dados...</p>
+                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">A preparar ligação do servidor...</p>
             </div>
 
-            <!-- Botão de Carregamento Manual (Visível apenas em caso de falha de conexão automática ou CORS) -->
+            <!-- Botão de Carregamento Manual (Visível apenas em caso de falha de ligação automática) -->
             <div id="dropzone-area" class="hidden w-full text-center flex flex-col items-center border-t border-zinc-900 pt-4">
                 <p class="text-xs text-zinc-400 font-bold leading-relaxed mb-4">
-                    Não foi possível descarregar o ficheiro do servidor automaticamente.
+                    Não foi possível sincronizar o ficheiro do servidor automaticamente.
                 </p>
                 <input type="file" id="pdf-uploader" accept=".pdf" class="hidden">
                 <button onclick="triggerFileInput()" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs tracking-wider transition-all shadow-md uppercase">
-                    SELECIONAR PDF LOCAL
+                    SELECIONAR PDF LOCALMENTE
                 </button>
             </div>
 
@@ -187,7 +187,7 @@
                         <i data-lucide="music-3" class="w-4.5 h-4.5 text-black font-extrabold"></i>
                     </div>
                     <h1 class="logo-text text-xl sm:text-2xl font-black tracking-widest uppercase transition-colors duration-300 text-center">
-                        BRINK FEST <span class="text-amber-500">KARAOKÉ</span>
+                        BRINK FEST <span class="text-amber-500">KARAOKÊ</span>
                     </h1>
                 </div>
                 <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
@@ -246,7 +246,7 @@
 
                 <!-- Detalhes da pesquisa atual -->
                 <div class="text-[10px] text-zinc-500 flex items-center gap-1.5" id="search-meta">
-                    <span id="results-count">A filtrar músicas...</span>
+                    <span id="results-count">Filtrando músicas...</span>
                     <span id="artist-alert" class="hidden text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider items-center gap-1">
                         <i data-lucide="sparkles" class="w-3 h-3"></i> Listagem completa do artista
                     </span>
@@ -274,7 +274,7 @@
 
     </main>
 
-    <!-- Lógica de Operação do Ficheiro -->
+    <!-- Lógica de Operação do Sistema -->
     <script>
         let songs = [];
         let currentLanguage = 'ALL';
@@ -292,7 +292,7 @@
             // Configuração do Drag e Drop no Splash Screen
             setupDragAndDrop();
 
-            // Tenta carregar o catálogo completo a partir da cache interna do localStorage
+            // Tenta carregar catálogo completo da cache local do navegador
             const cachedDatabase = localStorage.getItem('brinkfest_database_precision');
             if (cachedDatabase) {
                 try {
@@ -316,13 +316,15 @@
             const progressBar = document.getElementById('loader-bar');
             const detailsText = document.getElementById('loader-details');
 
-            // Mapeia todas as possíveis variações do ficheiro no repositório (NFC/NFD e case)
+            // Múltiplas variações para cobrir todas as codificações (NFC e NFD do macOS/Windows)
             const possibleFilenames = [
                 'catalogo.pdf',
                 'Catálogo karaokê .pdf', // Decomposed (macOS)
                 'Catálogo karaokê .pdf', // Composed (Windows/Linux)
                 'catalogo_karaoke.pdf',
-                'Catálogo karaokê.pdf'
+                'Catálogo karaokê.pdf',
+                'Cata%CC%81logo%20karaoke%CC%82%20.pdf', // URL encoded decomposed
+                'Cat%C3%A1logo%20karaok%C3%AA%20.pdf'   // URL encoded composed
             ];
 
             let targetBuffer = null;
@@ -330,7 +332,7 @@
 
             for (let name of possibleFilenames) {
                 try {
-                    statusText.innerText = "A sincronizar músicas...";
+                    statusText.innerText = "A descarregar catálogo...";
                     loaderStatus.innerText = "A procurar ficheiro...";
                     
                     const response = await fetch(name);
@@ -352,14 +354,14 @@
                                 const percent = Math.round((loadedBytes / totalBytes) * 100);
                                 progressBar.style.width = percent + '%';
                                 loaderPercent.innerText = percent + '%';
-                                loaderStatus.innerText = "A descarregar catálogo...";
+                                loaderStatus.innerText = "A transferir ficheiro...";
                                 detailsText.innerText = `Descarregados ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB de ${(totalBytes / (1024 * 1024)).toFixed(1)}MB (${percent}%)`;
                             } else {
-                                detailsText.innerText = `A descarregar ficheiro: ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB processados...`;
+                                detailsText.innerText = `Transferidos: ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB...`;
                             }
                         }
 
-                        // Junta todos os pacotes binários carregados
+                        // Une todos os pacotes binários
                         let position = 0;
                         targetBuffer = new Uint8Array(loadedBytes);
                         for(let chunk of chunks) {
@@ -371,31 +373,31 @@
                         break;
                     }
                 } catch(e) {
-                    console.log(`Tentativa falhou para o ficheiro: ${name}`);
+                    console.log(`Tentativa ignorada para: ${name}`);
                 }
             }
 
             if (targetBuffer) {
                 try {
-                    loaderStatus.innerText = "A indexar músicas...";
+                    loaderStatus.innerText = "A indexar biblioteca...";
                     progressBar.style.width = "40%";
                     loaderPercent.innerText = "40%";
+                    detailsText.innerText = "A abrir base de dados PDF...";
                     
                     await processPDFData(targetBuffer);
                     completeLoading();
                 } catch (err) {
-                    console.error("Falha ao processar o PDF descarregado:", err);
+                    console.error("Falha ao indexar o PDF:", err);
                     showFallbackDropzone();
                 }
             } else {
-                // Se todas as tentativas de fetch falharem (CORS local ou PDF ausente)
                 showFallbackDropzone();
             }
         }
 
         // Mostra dropzone em caso de falha de conexão automática
         function showFallbackDropzone() {
-            document.getElementById('splash-status-text').innerText = "Aguardando Sincronização";
+            document.getElementById('splash-status-text').innerText = "Catálogo em Sincronização";
             document.getElementById('loader-box').classList.add('hidden');
             document.getElementById('dropzone-area').classList.remove('hidden');
         }
@@ -433,14 +435,13 @@
             renderSongs();
         }
 
-        // Zera o catálogo carregado e retorna à tela de download para nova sincronização
+        // Zera o catálogo carregado e recarrega do servidor
         function exitApp() {
             songs = [];
             localStorage.removeItem('brinkfest_database_precision');
             document.getElementById('search-input').value = '';
             searchQuery = '';
             
-            // Oculta buscador e mostra Splash para re-sincronizar do zero
             const splash = document.getElementById('splash-screen');
             splash.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
             splash.classList.add('pointer-events-auto');
@@ -450,14 +451,14 @@
             document.getElementById('loader-box').classList.remove('hidden');
             
             startAutoFetchPipeline();
-            showToast("A sincronizar novamente com o servidor do GitHub...", "info");
+            showToast("Memória limpa. A recarregar catálogo do servidor...", "info");
         }
 
         function triggerFileInput() {
             document.getElementById('pdf-uploader').click();
         }
 
-        // DRAG & DROP DO PDF NO SPLASH SCREEN (Apenas em caso de fallback de segurança)
+        // DRAG & DROP DO PDF NO SPLASH SCREEN
         function setupDragAndDrop() {
             const zone = document.getElementById('splash-screen');
             const dropArea = document.getElementById('dropzone-area');
@@ -490,7 +491,7 @@
                         showToast("Falha ao analisar o ficheiro.", "error");
                     }
                 } else {
-                    showToast("Por favor, envie apenas ficheiros no formato PDF.", "error");
+                    showToast("Por favor, envie apenas ficheiros PDF.", "error");
                 }
             });
         }
@@ -516,80 +517,92 @@
             }
         }
 
-        // EXTRATOR MULTI-COLUNA PRECISO (DUAL-STRATEGY)
+        // EXTRATOR MULTI-COLUNA ROBUSTO COM CAPTURA DEFENSIVA DE ERROS
         async function processPDFData(arrayBuffer) {
             const statusText = document.getElementById('loader-status');
             const detailsText = document.getElementById('loader-details');
             const progressBar = document.getElementById('loader-bar');
             const percentText = document.getElementById('loader-percent');
 
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            // Carrega o PDF a partir de ArrayBuffer ou TypedArray de forma compatível
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.buffer || arrayBuffer }).promise;
             const totalPages = pdf.numPages;
             let parsedSongs = [];
 
             for (let i = 1; i <= totalPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const items = textContent.items;
+                try {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const items = textContent.items;
+                    if (!items || items.length === 0) continue;
 
-                // Ordena linhas pelo eixo vertical Y com margem fina
-                const lineYMap = {};
-                items.forEach(item => {
-                    if (item.str === undefined || item.str === null) return;
-                    const y = Math.round(item.transform[5] * 10) / 10;
-                    
-                    let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4.5);
-                    if (!foundY) {
-                        foundY = y;
-                        lineYMap[foundY] = [];
-                    }
-                    lineYMap[foundY].push(item);
-                });
-
-                const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
-
-                // Montagem textual por colunas horizontais (X-coordinate)
-                let reconstructedLines = [];
-                sortedYKeys.forEach(yKey => {
-                    const rowItems = lineYMap[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
-                    const lineText = rowItems.map(it => it.str).join('');
-                    reconstructedLines.push(lineText);
-                });
-
-                const pageText = reconstructedLines.join('\n');
-                const hasCSVStructure = (pageText.match(/"/g) || []).length > 8 && (pageText.match(/,/g) || []).length > 4;
-
-                if (hasCSVStructure) {
-                    const csvRows = parseCSV(pageText);
-                    csvRows.forEach(row => {
-                        const song = extractSongFromFields(row);
-                        if (song) parsedSongs.push(song);
+                    // Ordena as coordenadas verticais Y de forma altamente segura
+                    const lineYMap = {};
+                    items.forEach(item => {
+                        if (!item || item.str === undefined || item.str === null) return;
+                        if (!item.transform || item.transform.length < 6) return;
+                        
+                        const y = Math.round(item.transform[5] * 10) / 10;
+                        
+                        let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4.5);
+                        if (!foundY) {
+                            foundY = y;
+                            lineYMap[foundY] = [];
+                        }
+                        lineYMap[foundY].push(item);
                     });
-                }
 
-                reconstructedLines.forEach(line => {
-                    const lineCodes = (line.match(/\b(\d{3,8})\b/g) || []);
-                    const alreadyParsed = lineCodes.some(code => parsedSongs.some(s => s.code === code));
-                    
-                    if (!alreadyParsed && lineCodes.length > 0) {
-                        const songsFromLine = parseColumnsLine(line);
-                        songsFromLine.forEach(s => {
-                            if (s && !parsedSongs.some(item => item.code === s.code)) {
-                                parsedSongs.push(s);
-                            }
+                    const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
+
+                    // Montagem das strings por linha através das coordenadas horizontais X
+                    let reconstructedLines = [];
+                    sortedYKeys.forEach(yKey => {
+                        const rowItems = lineYMap[yKey].sort((a, b) => {
+                            const ax = (a.transform && a.transform[4]) || 0;
+                            const bx = (b.transform && b.transform[4]) || 0;
+                            return ax - bx;
+                        });
+                        const lineText = rowItems.map(it => String(it.str)).join('');
+                        reconstructedLines.push(lineText);
+                    });
+
+                    const pageText = reconstructedLines.join('\n');
+                    const hasCSVStructure = (pageText.match(/"/g) || []).length > 8 && (pageText.match(/,/g) || []).length > 4;
+
+                    if (hasCSVStructure) {
+                        const csvRows = parseCSV(pageText);
+                        csvRows.forEach(row => {
+                            const song = extractSongFromFields(row);
+                            if (song) parsedSongs.push(song);
                         });
                     }
-                });
 
-                const progress = Math.round((i / totalPages) * 100);
-                progressBar.style.width = progress + '%';
-                percentText.innerText = progress + '%';
-                statusText.innerText = "A indexar músicas...";
-                detailsText.innerText = `A processar: Pág. ${i} de ${totalPages} | ${parsedSongs.length} músicas`;
+                    reconstructedLines.forEach(line => {
+                        const lineCodes = (line.match(/\b(\d{3,8})\b/g) || []);
+                        const alreadyParsed = lineCodes.some(code => parsedSongs.some(s => s.code === code));
+                        
+                        if (!alreadyParsed && lineCodes.length > 0) {
+                            const songsFromLine = parseColumnsLine(line);
+                            songsFromLine.forEach(s => {
+                                if (s && !parsedSongs.some(item => item.code === s.code)) {
+                                    parsedSongs.push(s);
+                                }
+                            });
+                        }
+                    });
+
+                    const progress = Math.round((i / totalPages) * 100);
+                    progressBar.style.width = progress + '%';
+                    percentText.innerText = progress + '%';
+                    statusText.innerText = "A indexar músicas...";
+                    detailsText.innerText = `Processadas: Pág. ${i} de ${totalPages} | ${parsedSongs.length} músicas`;
+                } catch (pageErr) {
+                    console.error(`Erro ao analisar a página ${i} (saltada para evitar travamentos):`, pageErr);
+                }
             }
 
             if (parsedSongs.length > 0) {
-                // De-duplica músicas e limpa entradas vazias
+                // De-duplica músicas e filtra strings indefinidas
                 const finalMap = {};
                 parsedSongs.forEach(s => {
                     if (s.code && s.title) {
@@ -599,7 +612,7 @@
                 songs = Object.values(finalMap);
                 localStorage.setItem('brinkfest_database_precision', JSON.stringify(songs));
             } else {
-                throw new Error("Nenhum registo extraído.");
+                throw new Error("Nenhum registo de música pôde ser extraído deste catálogo.");
             }
         }
 
@@ -634,7 +647,7 @@
             return lines;
         }
 
-        // SEPARADOR DE ENTRADAS DE COMPILADOS DE DUPLA COLUNA LADO A LADO
+        // SEPARADOR DE COLUNAS PARALELAS LADO A LADO
         function parseColumnsLine(line) {
             const codeRegex = /\b(\d{3,8})\b/g;
             let matches = [];
@@ -1091,7 +1104,7 @@
             lucide.createIcons();
         }
 
-        // COPIAR CÓDIGO DO VIDEOCLIPE
+        // COPIAR CÓDIGO
         function copyCode(code) {
             const tempInput = document.createElement("input");
             tempInput.value = code;
