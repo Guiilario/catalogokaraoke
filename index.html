@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full w-full overflow-x-hidden">
+<html lang="pt-PT" class="h-full w-full overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KARAOKÊ FINDER - Buscador de Músicas</title>
+    <title>BRINK FEST KARAOKÉ - Catálogo de Músicas</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,10 +26,10 @@
     </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PDF.js para leitura local precisa -->
+    <!-- PDF.js para leitura e indexação local de alta precisão -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
-        /* Bloqueio absoluto de rolagem lateral */
+        /* Bloqueio estrito de rolagem lateral */
         html, body {
             overflow-x: hidden;
             width: 100%;
@@ -42,7 +42,7 @@
         /* Tema Escuro Ativo (Padrão) */
         body.theme-dark {
             background-color: #000000;
-            color: #f4f4f5; /* zinc-100 */
+            color: #f4f4f5;
         }
         body.theme-dark .header-bar {
             background-color: #000000;
@@ -61,8 +61,8 @@
 
         /* Tema Claro Ativo */
         body.theme-light {
-            background-color: #f4f4f5; /* zinc-100 */
-            color: #09090b; /* zinc-950 */
+            background-color: #f4f4f5;
+            color: #09090b;
         }
         body.theme-light .header-bar {
             background-color: #ffffff;
@@ -81,7 +81,7 @@
             color: #09090b;
         }
 
-        /* Scrollbar discreta */
+        /* Scrollbar suave e fina */
         ::-webkit-scrollbar {
             width: 5px;
             height: 5px;
@@ -97,13 +97,22 @@
             background: #f59e0b;
         }
 
-        /* Destaque para termos correspondentes na busca */
+        /* Destaque para termos encontrados na pesquisa */
         mark {
             background-color: rgba(245, 158, 11, 0.18);
-            color: #d97706; /* amber-600 */
+            color: #d97706;
             font-weight: 700;
             padding: 0 2px;
             border-radius: 2px;
+        }
+
+        /* Rotação suave do disco de vinil */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 12s linear infinite;
         }
     </style>
 </head>
@@ -113,105 +122,120 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
 
-    <!-- Container de Toasts (Alertas Flutuantes) -->
+    <!-- Notificações flutuantes no ecrã (Toast) -->
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-[calc(100vw-3rem)] pointer-events-none"></div>
 
-    <!-- Cabeçalho Principal (Logo centralizado com botões e contador reorganizados abaixo) -->
-    <header class="header-bar border-b sticky top-0 z-45 px-4 py-5 w-full transition-colors duration-300">
+    <!-- TELA DE ANIMAÇÃO INICIAL / CARREGAMENTO AUTOMÁTICO DO PDF -->
+    <div id="splash-screen" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 transition-all duration-500 pointer-events-auto">
+        <div id="splash-drag-zone" class="w-full max-w-md p-8 rounded-3xl border border-zinc-900 bg-zinc-950/20 flex flex-col items-center gap-6 transition-all duration-300">
+            
+            <!-- Disco de Vinil com rotação constante -->
+            <div class="relative w-32 h-32 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse"></div>
+                <div class="w-28 h-28 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center shadow-2xl animate-spin-slow">
+                    <div class="w-20 h-28 rounded-full border border-zinc-700/30 absolute"></div>
+                    <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center border-4 border-zinc-950">
+                        <div class="w-2 h-2 rounded-full bg-black"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Título do Aplicativo com Subtítulo -->
+            <div class="text-center flex flex-col items-center">
+                <h2 class="text-2xl font-black tracking-widest text-white uppercase">BRINK FEST <span class="text-amber-500">KARAOKÉ</span></h2>
+                <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
+                <p id="splash-status-text" class="text-xs text-amber-500 font-semibold tracking-wider mt-4 uppercase">A carregar o catálogo...</p>
+            </div>
+
+            <!-- Progresso de Carregamento & Sincronização -->
+            <div id="loader-box" class="w-full pt-4 border-t border-zinc-900">
+                <div class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-widest">
+                    <span id="loader-status-container" class="text-zinc-400 flex items-center gap-1.5">
+                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500" id="spinner-icon"></i>
+                        <span id="loader-status">A iniciar transferência...</span>
+                    </span>
+                    <span id="loader-percent" class="text-amber-500">0%</span>
+                </div>
+                <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                    <div id="loader-bar" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">A mapear a base de dados...</p>
+            </div>
+
+            <!-- Botão de Carregamento Manual (Visível apenas em caso de falha de conexão automática ou CORS) -->
+            <div id="dropzone-area" class="hidden w-full text-center flex flex-col items-center border-t border-zinc-900 pt-4">
+                <p class="text-xs text-zinc-400 font-bold leading-relaxed mb-4">
+                    Não foi possível descarregar o ficheiro do servidor automaticamente.
+                </p>
+                <input type="file" id="pdf-uploader" accept=".pdf" class="hidden">
+                <button onclick="triggerFileInput()" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs tracking-wider transition-all shadow-md uppercase">
+                    SELECIONAR PDF LOCAL
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CABEÇALHO DO BUSCADOR (SÓ EXIBE LOGO, TOTAL, ESCURO/CLARO E SAIR) -->
+    <header id="app-header" class="header-bar border-b sticky top-0 z-40 px-4 py-5 w-full transition-colors duration-300 hidden">
         <div class="max-w-3xl mx-auto flex flex-col items-center justify-center gap-4 w-full">
             
-            <!-- Logo Centralizado no Topo e Totalmente Legível -->
-            <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-black shrink-0 shadow-sm">
-                    <i data-lucide="music-3" class="w-4.5 h-4.5 text-black font-extrabold"></i>
+            <!-- Logo Centralizado no Topo com Subtítulo -->
+            <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-black shrink-0 shadow-sm">
+                        <i data-lucide="music-3" class="w-4.5 h-4.5 text-black font-extrabold"></i>
+                    </div>
+                    <h1 class="logo-text text-xl sm:text-2xl font-black tracking-widest uppercase transition-colors duration-300 text-center">
+                        BRINK FEST <span class="text-amber-500">KARAOKÉ</span>
+                    </h1>
                 </div>
-                <h1 class="logo-text text-xl sm:text-2xl font-black tracking-widest uppercase transition-colors duration-300 text-center">
-                    KARAOKÊ <span class="text-amber-500">FINDER</span>
-                </h1>
+                <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
             </div>
             
-            <!-- Controles Reorganizados abaixo do Logo (Lado a Lado) -->
+            <!-- Ações e Contadores Reorganizados Abaixo do Título -->
             <div class="flex items-center justify-center gap-2 flex-wrap w-full">
+                
+                <!-- Número de Faixas / Status do Catálogo -->
+                <span class="text-[10px] font-bold tracking-wider px-2.5 py-2 rounded-lg bg-zinc-900 text-zinc-400 border border-zinc-850 flex items-center gap-1.5" id="header-status">
+                    0 MÚSICAS
+                </span>
+
                 <!-- Seletor de Tema Claro/Escuro -->
                 <button onclick="toggleTheme()" class="p-2 text-zinc-400 hover:text-amber-500 rounded-lg border border-zinc-850 hover:border-zinc-500 transition-all duration-200 bg-zinc-900/40 flex items-center justify-center gap-1.5" title="Alternar Tema">
                     <i id="theme-icon" data-lucide="sun" class="w-4 h-4"></i>
                     <span class="text-[9px] font-bold tracking-wider uppercase hidden sm:inline">Tema</span>
                 </button>
                 
-                <!-- Botão de Upload do Catálogo -->
-                <button onclick="triggerUpload()" class="p-2 text-zinc-400 hover:text-amber-500 rounded-lg border border-zinc-850 hover:border-zinc-500 transition-all duration-200 bg-zinc-900/40 flex items-center justify-center gap-1.5" title="Importar ou Substituir PDF">
-                    <i data-lucide="folder-open" class="w-4 h-4"></i>
-                    <span class="text-[9px] font-bold tracking-wider uppercase">Carregar Catálogo</span>
+                <!-- Botão Sair (Zerar Catálogo localmente e recarregar do servidor GitHub Pages) -->
+                <button onclick="exitApp()" class="p-2 text-rose-400 hover:text-rose-300 rounded-lg border border-zinc-850 hover:border-rose-500/40 transition-all duration-200 bg-zinc-900/40 flex items-center justify-center gap-1.5" title="Limpar Cache Local e Sincronizar">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span class="text-[9px] font-bold tracking-wider uppercase">Sair / Atualizar</span>
                 </button>
                 
-                <!-- Número de Faixas / Status do Catálogo -->
-                <span class="text-[9px] font-bold tracking-wider px-2.5 py-2 rounded-lg bg-zinc-900 text-zinc-400 border border-zinc-850 flex items-center gap-1.5" id="header-status">
-                    SEM CATÁLOGO
-                </span>
             </div>
 
         </div>
     </header>
 
-    <!-- Área de Conteúdo Centralizado (Sem vazamento lateral de pixels) -->
+    <!-- ÁREA CENTRAL DO APLICATIVO -->
     <main class="flex-1 max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6 box-border overflow-hidden">
         
-        <!-- PAINEL DE IMPORTAÇÃO INICIAL (Ocultado automaticamente após o upload) -->
-        <section id="upload-section" class="bg-zinc-950/20 border border-dashed border-zinc-800/80 rounded-2xl p-6 md:p-12 text-center flex flex-col items-center justify-center gap-5 transition-all duration-300 w-full box-border">
-            <div class="w-14 h-14 rounded-2xl bg-zinc-900/60 flex items-center justify-center text-amber-500 border border-zinc-800 shadow-inner">
-                <i data-lucide="file-up" class="w-6 h-6"></i>
-            </div>
-            <div>
-                <h2 class="text-base font-bold tracking-wide uppercase text-zinc-100">Carregue o seu Catálogo PDF</h2>
-                <p class="text-xs text-zinc-500 max-w-sm mx-auto mt-1.5 leading-relaxed">
-                    Importe o arquivo PDF do seu catálogo para começar a buscar músicas instantaneamente.
-                </p>
-            </div>
-            
-            <div class="w-full max-w-xs mt-1">
-                <label for="pdf-uploader" class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs tracking-wider cursor-pointer transition-all select-none text-center shadow-md">
-                    <i data-lucide="folder-search" class="w-4 h-4"></i>
-                    SELECIONAR PDF DO CATÁLOGO
-                </label>
-                <input type="file" id="pdf-uploader" accept=".pdf" class="hidden">
-            </div>
-
-            <!-- Demonstração Inicial opcional caso não tenha um PDF no momento -->
-            <button onclick="loadDemoMode()" class="text-[10px] text-zinc-500 hover:text-zinc-300 underline font-semibold transition">
-                Usar catálogo de teste para demonstração
-            </button>
-
-            <!-- Barra de Progresso de Leitura do PDF -->
-            <div id="loader-box" class="hidden w-full max-w-xs mt-4 pt-4 border-t border-zinc-900/60">
-                <div class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-widest">
-                    <span id="loader-status" class="text-zinc-400 flex items-center gap-1.5">
-                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500"></i>
-                        Indexando músicas...
-                    </span>
-                    <span id="loader-percent" class="text-amber-500">0%</span>
-                </div>
-                <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
-                    <div id="loader-bar" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">Mapeando páginas...</p>
-            </div>
-        </section>
-
-        <!-- SEÇÃO PRINCIPAL DE PESQUISA (EXIBIDA AUTOMATICAMENTE APÓS SUBIR O PDF) -->
+        <!-- SEÇÃO PRINCIPAL DE PESQUISA (CLEAN & MINIMALISTA) -->
         <section id="search-section" class="hidden flex flex-col gap-4 w-full box-border">
             
-            <!-- Campo de Busca de Altíssimo Contraste (Sempre fundo branco e texto preto) -->
+            <!-- Entrada de Busca de Alto Contraste Fixo (Fundo branco e texto preto em ambos os temas) -->
             <div class="relative w-full">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
                     <i data-lucide="search" class="w-4.5 h-4.5"></i>
                 </span>
-                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Pesquise por música, cantor, trecho ou código..." class="w-full bg-white text-black font-extrabold border-2 border-zinc-300 focus:border-amber-500 focus:ring-0 rounded-xl py-3.5 pl-11 pr-11 text-sm transition-all focus:outline-none shadow" autocomplete="off">
+                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Pesquise por música, intérprete, início da letra ou código..." class="w-full bg-white text-black font-extrabold border-2 border-zinc-300 focus:border-amber-500 focus:ring-0 rounded-xl py-3.5 pl-11 pr-11 text-sm transition-all focus:outline-none shadow animate-none" autocomplete="off">
                 <button id="voice-btn" onclick="startVoiceSearch()" class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black transition-colors" title="Pesquisar por Voz">
                     <i data-lucide="mic" class="w-4.5 h-4.5"></i>
                 </button>
             </div>
 
-            <!-- Controles de Idioma e Detalhes de Contagem -->
+            <!-- Filtros Rápidos & Metadados da Busca -->
             <div class="flex items-center justify-between gap-3 w-full mt-1 flex-wrap">
                 <!-- Filtros por idioma -->
                 <div id="lang-selector" class="bg-auxiliar flex gap-1 p-1 rounded-lg border border-zinc-800/10 overflow-x-auto transition-colors duration-300">
@@ -222,9 +246,9 @@
 
                 <!-- Detalhes da pesquisa atual -->
                 <div class="text-[10px] text-zinc-500 flex items-center gap-1.5" id="search-meta">
-                    <span id="results-count">Calculando catálogo...</span>
+                    <span id="results-count">A filtrar músicas...</span>
                     <span id="artist-alert" class="hidden text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider items-center gap-1">
-                        <i data-lucide="sparkles" class="w-3 h-3"></i> Músicas do artista listadas na totalidade
+                        <i data-lucide="sparkles" class="w-3 h-3"></i> Listagem completa do artista
                     </span>
                 </div>
             </div>
@@ -234,11 +258,11 @@
                 <!-- Preenchido via JavaScript -->
             </div>
 
-            <!-- CONTROLES DE PAGINAÇÃO DINÂMICA (SUBSTITUI O BOTÃO VER MAIS) -->
+            <!-- CONTROLES DE PAGINAÇÃO DINÂMICA -->
             <div id="pagination-box" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-zinc-900/50 w-full">
                 <!-- Status numérico -->
                 <div class="text-[11px] text-zinc-500 font-medium">
-                    Mostrando <span id="pag-start-index" class="font-bold text-zinc-400">0</span> a <span id="pag-end-index" class="font-bold text-zinc-400">0</span> de <span id="pag-total" class="font-bold text-zinc-400">0</span> músicas
+                    A mostrar <span id="pag-start-index" class="font-bold text-zinc-400">0</span> a <span id="pag-end-index" class="font-bold text-zinc-400">0</span> de <span id="pag-total" class="font-bold text-zinc-400">0</span> músicas
                 </div>
                 
                 <!-- Navegação de Páginas -->
@@ -250,23 +274,8 @@
 
     </main>
 
-    <!-- Script de Lógica do Sistema -->
+    <!-- Lógica de Operação do Ficheiro -->
     <script>
-        // Catálogo de demonstração apenas para testes iniciais
-        const demoSongs = [
-            { code: "19807", title: "MORE THAN THIS", artist: "10000 Maniacs", lyrics: "I could feel at the time", language: "EUA" },
-            { code: "4920", title: "I'M NOT IN LOVE", artist: "10cc", lyrics: "I'm not in love so don't forget it", language: "EUA" },
-            { code: "1039", title: "BOLA DE MEIA BOLA DE GUDE", artist: "14 Bis", lyrics: "Há um menino há um moleque", language: "BRA" },
-            { code: "3755", title: "LINDA JUVENTUDE", artist: "14 Bis", lyrics: "Zabelê, zumbi, besouro...", language: "BRA" },
-            { code: "6074", title: "PLANETA SONHO", artist: "14 Bis", lyrics: "Aqui ninguém mais ficará", language: "BRA" },
-            { code: "6197", title: "TODO AZUL DO MAR", artist: "14 Bis", lyrics: "Foi assim como ver o mar", language: "BRA" },
-            { code: "4321", title: "EVIDÊNCIAS", artist: "Chitãozinho & Xororó", lyrics: "E nessa loucura de dizer que não te quero...", language: "BRA" },
-            { code: "3120", title: "EDUARDO E MÔNICA", artist: "Legião Urbana", lyrics: "Quem um dia irá dizer que existe razão...", language: "BRA" },
-            { code: "6163", title: "A PAZ", artist: "Zizi Possi", lyrics: "A paz invadindo meu coração...", language: "BRA" },
-            { code: "3020", title: "ASA MORENA", artist: "Zizi Possi", lyrics: "Me faz pequena asa morena", language: "BRA" },
-            { code: "1211", title: "CORSÁRIO", artist: "Zizi Possi", lyrics: "Meu coração tropical tem que...", language: "BRA" }
-        ];
-
         let songs = [];
         let currentLanguage = 'ALL';
         let searchQuery = '';
@@ -277,227 +286,324 @@
         window.onload = function() {
             lucide.createIcons();
             
-            // Carrega tema persistido
-            const savedTheme = localStorage.getItem('karaoke_theme');
-            applyTheme(savedTheme || 'dark');
+            // Carrega tema preferido salvo
+            applyTheme(localStorage.getItem('karaoke_theme') || 'dark');
 
-            // Carrega catálogo definitivo se já houver um salvo
-            const cachedDatabase = localStorage.getItem('karaoke_database_definitive');
+            // Configuração do Drag e Drop no Splash Screen
+            setupDragAndDrop();
+
+            // Tenta carregar o catálogo completo a partir da cache interna do localStorage
+            const cachedDatabase = localStorage.getItem('brinkfest_database_precision');
             if (cachedDatabase) {
                 try {
                     songs = JSON.parse(cachedDatabase);
-                    activateSearchMode();
+                    completeLoading();
                 } catch(e) {
-                    showUploadPanel();
+                    startAutoFetchPipeline();
                 }
             } else {
-                showUploadPanel();
+                startAutoFetchPipeline();
             }
 
-            document.getElementById('pdf-uploader').addEventListener('change', handlePdfUpload);
+            document.getElementById('pdf-uploader').addEventListener('change', handlePdfManualUpload);
         };
 
-        // Ativa interface de busca
+        // PIPELINE DE DOWNLOAD AUTOMÁTICO COM PROGRESSO REAL (Especial para GitHub Pages)
+        async function startAutoFetchPipeline() {
+            const statusText = document.getElementById('splash-status-text');
+            const loaderStatus = document.getElementById('loader-status');
+            const loaderPercent = document.getElementById('loader-percent');
+            const progressBar = document.getElementById('loader-bar');
+            const detailsText = document.getElementById('loader-details');
+
+            // Mapeia todas as possíveis variações do ficheiro no repositório (NFC/NFD e case)
+            const possibleFilenames = [
+                'catalogo.pdf',
+                'Catálogo karaokê .pdf', // Decomposed (macOS)
+                'Catálogo karaokê .pdf', // Composed (Windows/Linux)
+                'catalogo_karaoke.pdf',
+                'Catálogo karaokê.pdf'
+            ];
+
+            let targetBuffer = null;
+            let successFilename = "";
+
+            for (let name of possibleFilenames) {
+                try {
+                    statusText.innerText = "A sincronizar músicas...";
+                    loaderStatus.innerText = "A procurar ficheiro...";
+                    
+                    const response = await fetch(name);
+                    if (response.ok) {
+                        const contentLength = response.headers.get('content-length');
+                        const totalBytes = parseInt(contentLength, 10);
+                        let loadedBytes = 0;
+                        
+                        const reader = response.body.getReader();
+                        const chunks = [];
+                        
+                        while(true) {
+                            const {done, value} = await reader.read();
+                            if (done) break;
+                            chunks.push(value);
+                            loadedBytes += value.length;
+                            
+                            if (totalBytes) {
+                                const percent = Math.round((loadedBytes / totalBytes) * 100);
+                                progressBar.style.width = percent + '%';
+                                loaderPercent.innerText = percent + '%';
+                                loaderStatus.innerText = "A descarregar catálogo...";
+                                detailsText.innerText = `Descarregados ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB de ${(totalBytes / (1024 * 1024)).toFixed(1)}MB (${percent}%)`;
+                            } else {
+                                detailsText.innerText = `A descarregar ficheiro: ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB processados...`;
+                            }
+                        }
+
+                        // Junta todos os pacotes binários carregados
+                        let position = 0;
+                        targetBuffer = new Uint8Array(loadedBytes);
+                        for(let chunk of chunks) {
+                            targetBuffer.set(chunk, position);
+                            position += chunk.length;
+                        }
+                        
+                        successFilename = name;
+                        break;
+                    }
+                } catch(e) {
+                    console.log(`Tentativa falhou para o ficheiro: ${name}`);
+                }
+            }
+
+            if (targetBuffer) {
+                try {
+                    loaderStatus.innerText = "A indexar músicas...";
+                    progressBar.style.width = "40%";
+                    loaderPercent.innerText = "40%";
+                    
+                    await processPDFData(targetBuffer);
+                    completeLoading();
+                } catch (err) {
+                    console.error("Falha ao processar o PDF descarregado:", err);
+                    showFallbackDropzone();
+                }
+            } else {
+                // Se todas as tentativas de fetch falharem (CORS local ou PDF ausente)
+                showFallbackDropzone();
+            }
+        }
+
+        // Mostra dropzone em caso de falha de conexão automática
+        function showFallbackDropzone() {
+            document.getElementById('splash-status-text').innerText = "Aguardando Sincronização";
+            document.getElementById('loader-box').classList.add('hidden');
+            document.getElementById('dropzone-area').classList.remove('hidden');
+        }
+
+        // Exibe painel de upload inicial
+        function showUploadPanel() {
+            const splash = document.getElementById('splash-screen');
+            splash.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            splash.classList.add('pointer-events-auto');
+
+            document.getElementById('app-header').classList.add('hidden');
+            document.getElementById('search-section').classList.add('hidden');
+            document.getElementById('loader-box').classList.add('hidden');
+            document.getElementById('dropzone-area').classList.remove('hidden');
+            document.getElementById('splash-status-text').innerText = "Aguardando Catálogo...";
+        }
+
+        // Ativa interface de busca limpa
         function activateSearchMode() {
-            document.getElementById('upload-section').classList.add('hidden');
+            const splash = document.getElementById('splash-screen');
+            splash.classList.add('opacity-0', 'pointer-events-none');
+            splash.classList.remove('pointer-events-auto');
+            
+            setTimeout(() => {
+                splash.classList.add('hidden');
+            }, 500);
+
+            document.getElementById('app-header').classList.remove('hidden');
             document.getElementById('search-section').classList.remove('hidden');
 
             const statusBadge = document.getElementById('header-status');
             statusBadge.innerHTML = `${songs.length} MÚSICAS`;
-            statusBadge.className = "text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center gap-1.5";
 
             currentPage = 1;
             renderSongs();
         }
 
-        // Mostra painel de importação inicial
-        function showUploadPanel() {
-            document.getElementById('upload-section').classList.remove('hidden');
+        // Zera o catálogo carregado e retorna à tela de download para nova sincronização
+        function exitApp() {
+            songs = [];
+            localStorage.removeItem('brinkfest_database_precision');
+            document.getElementById('search-input').value = '';
+            searchQuery = '';
+            
+            // Oculta buscador e mostra Splash para re-sincronizar do zero
+            const splash = document.getElementById('splash-screen');
+            splash.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            splash.classList.add('pointer-events-auto');
+            document.getElementById('app-header').classList.add('hidden');
             document.getElementById('search-section').classList.add('hidden');
-
-            const statusBadge = document.getElementById('header-status');
-            statusBadge.innerHTML = `Vazio`;
-            statusBadge.className = "text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-md bg-zinc-900 text-zinc-500 border border-zinc-800 flex items-center gap-1.5";
+            document.getElementById('dropzone-area').classList.add('hidden');
+            document.getElementById('loader-box').classList.remove('hidden');
+            
+            startAutoFetchPipeline();
+            showToast("A sincronizar novamente com o servidor do GitHub...", "info");
         }
 
-        // Carregar modo demo (opção secundária)
-        function loadDemoMode() {
-            songs = [...demoSongs];
-            localStorage.setItem('karaoke_database_definitive', JSON.stringify(songs));
-            activateSearchMode();
-            showToast("Catálogo de teste ativado!", "success");
-        }
-
-        function triggerUpload() {
+        function triggerFileInput() {
             document.getElementById('pdf-uploader').click();
         }
 
-        // GERENCIADOR DE TEMAS (Claro/Escuro)
-        function toggleTheme() {
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
+        // DRAG & DROP DO PDF NO SPLASH SCREEN (Apenas em caso de fallback de segurança)
+        function setupDragAndDrop() {
+            const zone = document.getElementById('splash-screen');
+            const dropArea = document.getElementById('dropzone-area');
+            const loaderBox = document.getElementById('loader-box');
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('bg-zinc-950');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('bg-zinc-950');
+            });
+
+            zone.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                zone.classList.remove('bg-zinc-950');
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    dropArea.classList.add('hidden');
+                    loaderBox.classList.remove('hidden');
+                    
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        await processPDFData(arrayBuffer);
+                        completeLoading();
+                    } catch (err) {
+                        showFallbackDropzone();
+                        showToast("Falha ao analisar o ficheiro.", "error");
+                    }
+                } else {
+                    showToast("Por favor, envie apenas ficheiros no formato PDF.", "error");
+                }
+            });
         }
 
-        function applyTheme(theme) {
-            currentTheme = theme;
-            localStorage.setItem('karaoke_theme', theme);
-            
-            const body = document.body;
-            const themeIcon = document.getElementById('theme-icon');
-
-            if (theme === 'light') {
-                body.classList.remove('theme-dark');
-                body.classList.add('theme-light');
-                themeIcon.setAttribute('data-lucide', 'moon');
-            } else {
-                body.classList.remove('theme-light');
-                body.classList.add('theme-dark');
-                themeIcon.setAttribute('data-lucide', 'sun');
-            }
-
-            lucide.createIcons();
-            updateLangSelectorStyles();
-            renderSongs(); // Redibuja páginas para aplicar classes corretas de tema
-        }
-
-        function updateLangSelectorStyles() {
-            const isDark = currentTheme === 'dark';
-            const sel = document.getElementById('lang-selector');
-            if (isDark) {
-                sel.className = "bg-zinc-950 flex gap-1 p-1 rounded-lg border border-zinc-900 overflow-x-auto transition-colors duration-300";
-            } else {
-                sel.className = "bg-zinc-200/80 flex gap-1 p-1 rounded-lg border border-zinc-300/40 overflow-x-auto transition-colors duration-300";
-            }
-        }
-
-        // EXTRATOR DE ALTA PRECISÃO (DOUBLED-STRATEGY PARSER)
-        async function handlePdfUpload(e) {
+        // UPLOAD MANUAL DE SEGURANÇA
+        async function handlePdfManualUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
+            const dropArea = document.getElementById('dropzone-area');
             const loaderBox = document.getElementById('loader-box');
-            const loaderBar = document.getElementById('loader-bar');
-            const loaderPercent = document.getElementById('loader-percent');
-            const loaderStatus = document.getElementById('loader-status');
-            const loaderDetails = document.getElementById('loader-details');
 
+            dropArea.classList.add('hidden');
             loaderBox.classList.remove('hidden');
-            loaderBar.style.width = '0%';
-            loaderPercent.innerText = '0%';
-            loaderStatus.innerText = 'Importando...';
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const totalPages = pdf.numPages;
-                let parsedSongs = [];
-
-                loaderDetails.innerText = `Lendo arquivo. Analisando ${totalPages} páginas...`;
-
-                for (let i = 1; i <= totalPages; i++) {
-                    try {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const items = textContent.items;
-
-                        // Agrupa elementos textuais por proximidade vertical (eixo Y com limite de 4.5px)
-                        const lineYMap = {};
-                        items.forEach(item => {
-                            if (item.str === undefined || item.str === null) return;
-                            const y = Math.round(item.transform[5] * 10) / 10;
-                            
-                            let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4.5);
-                            if (!foundY) {
-                                foundY = y;
-                                lineYMap[foundY] = [];
-                            }
-                            lineYMap[foundY].push(item);
-                        });
-
-                        const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
-
-                        // Junta blocos de texto respeitando a ordenação horizontal da esquerda para a direita
-                        let reconstructedLines = [];
-                        sortedYKeys.forEach(yKey => {
-                            const rowItems = lineYMap[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
-                            const lineText = rowItems.map(it => it.str).join('');
-                            reconstructedLines.push(lineText);
-                        });
-
-                        const pageText = reconstructedLines.join('\n');
-
-                        // Checa se a página tem estrutura CSV explícita (delimitadores de aspas e vírgulas)
-                        const hasCSVStructure = (pageText.match(/"/g) || []).length > 8 && (pageText.match(/,/g) || []).length > 4;
-
-                        if (hasCSVStructure) {
-                            const csvRows = parseCSV(pageText);
-                            csvRows.forEach(row => {
-                                const song = extractSongFromFields(row);
-                                if (song) parsedSongs.push(song);
-                            });
-                        }
-
-                        // Algoritmo de Fallback - Linha por linha (suporta de 3 a 8 dígitos por código)
-                        reconstructedLines.forEach(line => {
-                            const lineCodes = (line.match(/\b(\d{3,8})\b/g) || []);
-                            const alreadyParsed = lineCodes.some(code => parsedSongs.some(s => s.code === code));
-                            
-                            if (!alreadyParsed && lineCodes.length > 0) {
-                                const songsFromLine = parseColumnsLine(line);
-                                songsFromLine.forEach(s => {
-                                    if (s && !parsedSongs.some(item => item.code === s.code)) {
-                                        parsedSongs.push(s);
-                                    }
-                                });
-                            }
-                        });
-
-                    } catch (pageErr) {
-                        console.error(`Erro na pág ${i}:`, pageErr);
-                    }
-
-                    // Atualiza o progresso na tela
-                    const progress = Math.round((i / totalPages) * 100);
-                    loaderBar.style.width = progress + '%';
-                    loaderPercent.innerText = progress + '%';
-                    loaderDetails.innerText = `Pág. ${i} de ${totalPages} | Extraídas: ${parsedSongs.length}`;
-                }
-
-                if (parsedSongs.length === 0) {
-                    throw new Error("Não detectamos dados tabulares válidos no PDF. Certifique-se de que o catálogo possui textos selecionáveis.");
-                }
-
-                // Remove registros duplicados
-                const finalMap = {};
-                parsedSongs.forEach(s => {
-                    finalMap[s.code] = s;
-                });
-                songs = Object.values(finalMap);
-
-                // Grava catálogo definitivo no dispositivo do usuário
-                localStorage.setItem('karaoke_database_definitive', JSON.stringify(songs));
-                
-                // Inicializa a interface de pesquisa
-                activateSearchMode();
-                showToast(`Catálogo carregado com sucesso! ${songs.length} músicas prontas.`, "success");
-
-                // Limpa entrada de busca
-                document.getElementById('search-input').value = '';
-                searchQuery = '';
-
-                setTimeout(() => {
-                    loaderBox.classList.add('hidden');
-                }, 1000);
-
+                await processPDFData(arrayBuffer);
+                completeLoading();
             } catch (err) {
-                console.error(err);
-                showToast("Erro ao processar catálogo. Verifique o arquivo.", "error");
-                loaderStatus.innerText = 'Falha';
-                loaderDetails.innerText = err.message;
+                showFallbackDropzone();
+                showToast("Erro ao processar o PDF selecionado.", "error");
             }
         }
 
-        // TOKENIZADOR DE CSV RFC 4180
+        // EXTRATOR MULTI-COLUNA PRECISO (DUAL-STRATEGY)
+        async function processPDFData(arrayBuffer) {
+            const statusText = document.getElementById('loader-status');
+            const detailsText = document.getElementById('loader-details');
+            const progressBar = document.getElementById('loader-bar');
+            const percentText = document.getElementById('loader-percent');
+
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const totalPages = pdf.numPages;
+            let parsedSongs = [];
+
+            for (let i = 1; i <= totalPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const items = textContent.items;
+
+                // Ordena linhas pelo eixo vertical Y com margem fina
+                const lineYMap = {};
+                items.forEach(item => {
+                    if (item.str === undefined || item.str === null) return;
+                    const y = Math.round(item.transform[5] * 10) / 10;
+                    
+                    let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4.5);
+                    if (!foundY) {
+                        foundY = y;
+                        lineYMap[foundY] = [];
+                    }
+                    lineYMap[foundY].push(item);
+                });
+
+                const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
+
+                // Montagem textual por colunas horizontais (X-coordinate)
+                let reconstructedLines = [];
+                sortedYKeys.forEach(yKey => {
+                    const rowItems = lineYMap[yKey].sort((a, b) => a.transform[4] - b.transform[4]);
+                    const lineText = rowItems.map(it => it.str).join('');
+                    reconstructedLines.push(lineText);
+                });
+
+                const pageText = reconstructedLines.join('\n');
+                const hasCSVStructure = (pageText.match(/"/g) || []).length > 8 && (pageText.match(/,/g) || []).length > 4;
+
+                if (hasCSVStructure) {
+                    const csvRows = parseCSV(pageText);
+                    csvRows.forEach(row => {
+                        const song = extractSongFromFields(row);
+                        if (song) parsedSongs.push(song);
+                    });
+                }
+
+                reconstructedLines.forEach(line => {
+                    const lineCodes = (line.match(/\b(\d{3,8})\b/g) || []);
+                    const alreadyParsed = lineCodes.some(code => parsedSongs.some(s => s.code === code));
+                    
+                    if (!alreadyParsed && lineCodes.length > 0) {
+                        const songsFromLine = parseColumnsLine(line);
+                        songsFromLine.forEach(s => {
+                            if (s && !parsedSongs.some(item => item.code === s.code)) {
+                                parsedSongs.push(s);
+                            }
+                        });
+                    }
+                });
+
+                const progress = Math.round((i / totalPages) * 100);
+                progressBar.style.width = progress + '%';
+                percentText.innerText = progress + '%';
+                statusText.innerText = "A indexar músicas...";
+                detailsText.innerText = `A processar: Pág. ${i} de ${totalPages} | ${parsedSongs.length} músicas`;
+            }
+
+            if (parsedSongs.length > 0) {
+                // De-duplica músicas e limpa entradas vazias
+                const finalMap = {};
+                parsedSongs.forEach(s => {
+                    if (s.code && s.title) {
+                        finalMap[s.code] = s;
+                    }
+                });
+                songs = Object.values(finalMap);
+                localStorage.setItem('brinkfest_database_precision', JSON.stringify(songs));
+            } else {
+                throw new Error("Nenhum registo extraído.");
+            }
+        }
+
+        // TOKENIZADOR DE CSV
         function parseCSV(text) {
             let lines = [];
             let row = [""];
@@ -528,76 +634,13 @@
             return lines;
         }
 
-        // EXTRAÇÃO DE CÉLULAS E DETECÇÃO DE CÓDIGOS DE ATÉ 8 DÍGITOS
-        function extractSongFromFields(fields) {
-            fields = fields.map(f => {
-                let cleaned = f.replace(/\\n/g, ' ').replace(/\n/g, ' ');
-                return cleaned.replace(/\s+/g, ' ').trim();
-            }).filter(f => f !== "");
-
-            if (fields.length < 2) return null;
-
-            let code = "";
-            let codeFieldIndex = -1;
-
-            // Busca código numérico de 3 a 8 dígitos
-            for (let i = 0; i < fields.length; i++) {
-                const match = fields[i].match(/\b(\d{3,8})\b/);
-                if (match) {
-                    code = match[1];
-                    codeFieldIndex = i;
-                    break;
-                }
-            }
-
-            if (!code) return null;
-
-            let title = fields[codeFieldIndex].replace(code, '').trim();
-
-            let artist = "Desconhecido";
-            if (codeFieldIndex > 0) {
-                artist = fields.slice(0, codeFieldIndex).join(' ').trim();
-            }
-
-            let remaining = fields.slice(codeFieldIndex + 1);
-            let language = "BRA";
-
-            if (remaining.length > 0) {
-                const lastField = remaining[remaining.length - 1].toUpperCase();
-                if (/^(BRA|EUA|INT|ITA|JAP|ESP|FRA|ENG)$/.test(lastField)) {
-                    language = lastField;
-                    remaining.pop();
-                }
-            }
-
-            let lyrics = remaining.filter(f => f && f !== '...').join(' ').trim() || "Início da letra indisponível";
-
-            title = title.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-            artist = artist.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-
-            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') {
-                return null;
-            }
-
-            return {
-                code,
-                artist,
-                title: title.toUpperCase(),
-                lyrics,
-                language
-            };
-        }
-
-        // DETECTOR DE MÚSICAS LADO A LADO EM CATÁLOGOS COM DUPLA COLUNA
+        // SEPARADOR DE ENTRADAS DE COMPILADOS DE DUPLA COLUNA LADO A LADO
         function parseColumnsLine(line) {
             const codeRegex = /\b(\d{3,8})\b/g;
             let matches = [];
             let match;
             while ((match = codeRegex.exec(line)) !== null) {
-                matches.push({
-                    code: match[1],
-                    index: match.index
-                });
+                matches.push({ code: match[1], index: match.index });
             }
 
             if (matches.length === 0) return [];
@@ -618,9 +661,7 @@
                     const codeEnd = currentMatch.index + currentMatch.code.length;
                     const nextCodeStart = nextMatch.index;
                     const sub = line.substring(codeEnd, nextCodeStart);
-                    
-                    const relSplit = findSplitPoint(sub);
-                    const absoluteSplit = codeEnd + relSplit;
+                    const absoluteSplit = codeEnd + findSplitPoint(sub);
                     
                     segment = line.substring(currentStart, absoluteSplit);
                     currentStart = absoluteSplit;
@@ -629,9 +670,7 @@
                 }
 
                 const parsed = parseRawLineFallback(segment);
-                if (parsed) {
-                    songsFound.push(parsed);
-                }
+                if (parsed) songsFound.push(parsed);
             }
             return songsFound;
         }
@@ -643,10 +682,7 @@
             while ((m = transitionRegex.exec(sub)) !== null) {
                 lastTransitionIdx = m.index + 1;
             }
-            if (lastTransitionIdx !== -1) {
-                return lastTransitionIdx;
-            }
-            return Math.floor(sub.length / 2);
+            return lastTransitionIdx !== -1 ? lastTransitionIdx : Math.floor(sub.length / 2);
         }
 
         function parseRawLineFallback(line) {
@@ -678,7 +714,6 @@
                     lyricWords.push(word);
                     continue;
                 }
-
                 const hasLetters = /[A-ZÀ-Ýa-zà-ÿ]/.test(word);
                 const hasLowercase = /[a-zà-ÿ]/.test(word);
 
@@ -699,20 +734,109 @@
             artist = artist.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
 
             if (!artist) artist = "Desconhecido";
-            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') {
-                return null;
-            }
+            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') return null;
 
-            return {
-                code,
-                artist,
-                title: title.toUpperCase(),
-                lyrics,
-                language
-            };
+            return { code, artist, title: title.toUpperCase(), lyrics, language };
         }
 
-        // FILTROS DE IDIOMA E INTERAÇÕES
+        function extractSongFromFields(fields) {
+            fields = fields.map(f => f.replace(/\s+/g, ' ').trim()).filter(f => f !== "");
+            if (fields.length < 2) return null;
+
+            let code = "";
+            let codeFieldIndex = -1;
+
+            for (let i = 0; i < fields.length; i++) {
+                const match = fields[i].match(/\b(\d{3,8})\b/);
+                if (match) {
+                    code = match[1];
+                    codeFieldIndex = i;
+                    break;
+                }
+            }
+
+            if (!code) return null;
+
+            let title = fields[codeFieldIndex].replace(code, '').trim();
+            let artist = "Desconhecido";
+            if (codeFieldIndex > 0) {
+                artist = fields.slice(0, codeFieldIndex).join(' ').trim();
+            }
+
+            let remaining = fields.slice(codeFieldIndex + 1);
+            let language = "BRA";
+
+            if (remaining.length > 0) {
+                const lastField = remaining[remaining.length - 1].toUpperCase();
+                if (/^(BRA|EUA|INT|ITA|JAP|ESP|FRA|ENG)$/.test(lastField)) {
+                    language = lastField;
+                    remaining.pop();
+                }
+            }
+
+            let lyrics = remaining.filter(f => f && f !== '...').join(' ').trim() || "Início da letra indisponível";
+
+            title = title.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
+            artist = artist.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
+
+            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') return null;
+
+            return { code, artist, title: title.toUpperCase(), lyrics, language };
+        }
+
+        // TRANSIÇÃO PARA INTERFACE COMPLETA DE BUSCA
+        function completeLoading() {
+            const percent = document.getElementById('loader-percent');
+            const status = document.getElementById('loader-status');
+
+            percent.innerText = "100%";
+            status.innerText = "Sincronizado!";
+
+            setTimeout(() => {
+                activateSearchMode();
+            }, 500);
+        }
+
+        // GERENCIADOR DE TEMAS
+        function toggleTheme() {
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        }
+
+        function applyTheme(theme) {
+            currentTheme = theme;
+            localStorage.setItem('karaoke_theme', theme);
+            
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+
+            if (theme === 'light') {
+                body.classList.remove('theme-dark');
+                body.classList.add('theme-light');
+                themeIcon.setAttribute('data-lucide', 'moon');
+            } else {
+                body.classList.remove('theme-light');
+                body.classList.add('theme-dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
+            }
+
+            lucide.createIcons();
+            updateLangSelectorStyles();
+            if (songs.length > 0) {
+                renderSongs();
+            }
+        }
+
+        function updateLangSelectorStyles() {
+            const isDark = currentTheme === 'dark';
+            const sel = document.getElementById('lang-selector');
+            if (!sel) return;
+            sel.className = isDark 
+                ? "bg-zinc-950 flex gap-1 p-1 rounded-lg border border-zinc-900 overflow-x-auto transition-colors duration-300"
+                : "bg-zinc-200/80 flex gap-1 p-1 rounded-lg border border-zinc-300/40 overflow-x-auto transition-colors duration-300";
+        }
+
+        // INTERAÇÃO E REGRAS DO FILTRO
         function setLanguage(lang) {
             currentLanguage = lang;
             ['ALL', 'BRA', 'EUA'].forEach(l => {
@@ -733,22 +857,20 @@
             renderSongs();
         }
 
-        // MOTOR DE BUSCA OTIMIZADO PARA MÚSICAS E LISTAGEM DE ARTISTAS COMPLETOS
+        // MOTOR DE BUSCA OTIMIZADO
         function renderSongs() {
             const container = document.getElementById('songs-list-container');
             const paginationBox = document.getElementById('pagination-box');
             const artistAlert = document.getElementById('artist-alert');
 
             let listToRender = [];
-
             const normQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
             const terms = normQuery.split(/\s+/).filter(t => t.length > 0);
 
             let isArtistSearch = false;
             if (normQuery.length >= 3) {
-                // Checa se o termo coincide exatamente ou fortemente com algum artista do catálogo
                 const artistMatches = songs.filter(s => {
-                    const normArtist = s.artist.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                    const normArtist = (s.artist || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                     return normArtist.includes(normQuery);
                 });
 
@@ -765,19 +887,20 @@
                 listToRender = songs.filter(song => {
                     if (currentLanguage !== 'ALL') {
                         if (currentLanguage === 'BRA' && song.language !== 'BRA') return false;
-                        if (currentLanguage === 'EUA' && song.language === 'BRA') return false;
+                        if (currentLanguage === 'EUA' && song.language !== 'EUA') return false;
                     }
 
                     if (terms.length > 0) {
-                        const normTitle = song.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const normArtist = song.artist.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const normLyrics = song.lyrics.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normTitle = (song.title || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normArtist = (song.artist || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normLyrics = (song.lyrics || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const normCode = String(song.code || '');
                         
                         return terms.every(term => {
                             return normTitle.includes(term) || 
                                    normArtist.includes(term) || 
                                    normLyrics.includes(term) || 
-                                   song.code.includes(term);
+                                   normCode.includes(term);
                         });
                     }
                     return true;
@@ -787,22 +910,18 @@
                 artistAlert.style.display = 'inline-flex';
             }
 
-            // Ordena os resultados
-            listToRender.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title));
+            listToRender.sort((a, b) => (a.artist || '').localeCompare(b.artist || '') || (a.title || '').localeCompare(b.title || ''));
 
             const totalResults = listToRender.length;
             let paginatedList = [];
             
             if (isArtistSearch) {
-                // Se for busca de artista, desativa limites e paginação para expor todas as faixas juntas
                 paginatedList = listToRender;
                 paginationBox.classList.add('hidden');
             } else {
-                // Mostra paginação tradicional se for busca padrão
                 paginationBox.classList.remove('hidden');
                 const totalPages = Math.ceil(totalResults / itemsPerPage);
 
-                // Tratamento preventivo se a página atual ultrapassar o total de páginas existentes
                 if (currentPage > totalPages && totalPages > 0) {
                     currentPage = totalPages;
                 }
@@ -812,7 +931,6 @@
 
                 paginatedList = listToRender.slice(startIndex, endIndex);
 
-                // Atualiza os indicadores de paginação na tela
                 document.getElementById('pag-start-index').innerText = totalResults > 0 ? startIndex + 1 : 0;
                 document.getElementById('pag-end-index').innerText = endIndex;
                 document.getElementById('pag-total').innerText = totalResults;
@@ -824,14 +942,12 @@
             buildListHTML(paginatedList, container, terms);
         }
 
-        // CONSTRUÇÃO DOS CONTROLES DE PAGINAÇÃO DINÂMICOS
+        // CONTROLES DE PAGINAÇÃO DINÂMICOS
         function renderPaginationControls(totalPages) {
             const container = document.getElementById('pagination-controls-container');
             container.innerHTML = '';
 
-            if (totalPages <= 1) {
-                return; // Oculta controles se houver apenas uma página de conteúdo
-            }
+            if (totalPages <= 1) return;
 
             const isDark = currentTheme === 'dark';
             const btnBaseClass = "h-8 px-3 rounded-lg text-xs font-bold transition-all duration-200 border flex items-center justify-center select-none cursor-pointer";
@@ -843,19 +959,17 @@
             const btnActive = isDark ? btnActiveDark : btnActiveLight;
             const btnInactive = isDark ? btnInactiveDark : btnInactiveLight;
 
-            // Botão "Anterior"
+            // Botão Anterior
             const prevBtn = document.createElement('button');
             prevBtn.className = `${btnBaseClass} ${btnInactive} ${currentPage === 1 ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`;
             prevBtn.innerHTML = '<i data-lucide="chevron-left" class="w-3.5 h-3.5 mr-0.5"></i> <span class="hidden sm:inline">Anterior</span>';
             prevBtn.onclick = () => changePage(currentPage - 1);
             container.appendChild(prevBtn);
 
-            // Container para as páginas individuais de desktop (Oculto em telas mobile)
             const pagesDesktopContainer = document.createElement('div');
             pagesDesktopContainer.className = "hidden sm:flex items-center gap-1";
 
-            // Lógica para gerar os números das páginas com elipses "..."
-            const delta = 1; // Número de vizinhos de cada lado da página atual
+            const delta = 1;
             const range = [];
             const rangeWithDots = [];
             let l;
@@ -878,7 +992,6 @@
                 l = i;
             }
 
-            // Renderiza botões numéricos
             rangeWithDots.forEach(p => {
                 if (p === '...') {
                     const dotsSpan = document.createElement('span');
@@ -896,16 +1009,16 @@
 
             container.appendChild(pagesDesktopContainer);
 
-            // Indicador de página específico para mobile (Visível apenas em mobile)
+            // Celular Indicator
             const mobileIndicator = document.createElement('span');
             mobileIndicator.className = "inline-flex sm:hidden text-xs font-extrabold text-zinc-400 bg-zinc-950/40 border border-zinc-900/40 px-3 py-1.5 rounded-lg";
             mobileIndicator.innerText = `${currentPage} / ${totalPages}`;
             container.appendChild(mobileIndicator);
 
-            // Botão "Próxima"
+            // Seguinte
             const nextBtn = document.createElement('button');
             nextBtn.className = `${btnBaseClass} ${btnInactive} ${currentPage === totalPages ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`;
-            nextBtn.innerHTML = '<span class="hidden sm:inline">Próxima</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5 ml-0.5"></i>';
+            nextBtn.innerHTML = '<span class="hidden sm:inline">Seguinte</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5 ml-0.5"></i>';
             nextBtn.onclick = () => changePage(currentPage + 1);
             container.appendChild(nextBtn);
 
@@ -915,12 +1028,10 @@
         function changePage(page) {
             currentPage = page;
             renderSongs();
-            
-            // Rola suavemente para o início do buscador ao mudar de página (ótimo em mobile)
             document.getElementById('search-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // RENDERIZADOR DOS CARDS DE MÚSICA
+        // CARDS HTML RENDER
         function buildListHTML(list, container, terms) {
             if (list.length === 0) {
                 container.innerHTML = `
@@ -936,10 +1047,10 @@
             container.innerHTML = list.map(song => {
                 const flag = song.language === 'BRA' ? '🇧🇷' : '🇺🇸';
                 
-                let titleHTML = song.title;
-                let artistHTML = song.artist;
-                let lyricsHTML = song.lyrics;
-                let codeHTML = song.code;
+                let titleHTML = song.title || '';
+                let artistHTML = song.artist || '';
+                let lyricsHTML = song.lyrics || '';
+                let codeHTML = song.code || '';
 
                 if (terms.length > 0) {
                     terms.forEach(term => {
@@ -954,7 +1065,6 @@
                 return `
                     <div class="song-card border px-4 py-3.5 rounded-xl flex items-center justify-between gap-3 w-full box-border transition-colors duration-250">
                         <div class="flex items-center gap-4 min-w-0 w-full">
-                            <!-- Código em Destaque Amber -->
                             <div class="h-12 w-16 bg-zinc-950 border border-zinc-900/40 flex flex-col justify-center items-center rounded-lg shrink-0 select-all" title="Copiar código">
                                 <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">CÓD</span>
                                 <span class="text-sm font-black text-amber-500 tracking-wider mt-0.5">${codeHTML}</span>
@@ -970,7 +1080,6 @@
                             </div>
                         </div>
 
-                        <!-- Botão copiar código -->
                         <div class="shrink-0">
                             <button onclick="copyCode('${song.code}')" class="p-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 border border-zinc-900 rounded-lg transition-all" title="Copiar código">
                                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -982,13 +1091,13 @@
             lucide.createIcons();
         }
 
-        // COPIAR CÓDIGO DA MÚSICA PARA CLIPBOARD
+        // COPIAR CÓDIGO DO VIDEOCLIPE
         function copyCode(code) {
             const tempInput = document.createElement("input");
             tempInput.value = code;
             document.body.appendChild(tempInput);
             tempInput.select();
-            document.execCommand("copy"); // Fallback seguro
+            document.execCommand("copy");
             document.body.removeChild(tempInput);
             showToast(`Código ${code} copiado! 📋`, "success");
         }
@@ -1006,7 +1115,7 @@
             
             const micBtn = document.getElementById('voice-btn');
             micBtn.classList.add('text-amber-500', 'scale-110');
-            showToast("Ouvindo cantor ou música...", "info");
+            showToast("A ouvir...", "info");
 
             rec.onresult = function(e) {
                 const voiceVal = e.results[0][0].transcript;
