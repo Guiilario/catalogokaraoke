@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo Digital - Carvão e Gelo</title>
-  <!-- Tailwind CSS para um design moderno e responsivo -->
+  <!-- Tailwind CSS para um design responsivo e moderno -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Estilos personalizados para transições suaves */
+    /* Transições suaves para os modais e gavetas */
     .modal-transition {
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
     .drawer-transition {
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    /* Custom Scrollbar */
+    /* Barra de rolagem personalizada */
     ::-webkit-scrollbar {
       width: 6px;
     }
@@ -30,57 +30,37 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex flex-col min-h-screen pb-24">
+<body class="bg-slate-50 text-slate-800 font-sans flex flex-col min-h-screen">
 
-  <!-- NOTIFICAÇÃO TOAST CUSTOMIZADA -->
+  <!-- NOTIFICAÇÃO TOAST PARA ALERTAS -->
   <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-2 border border-slate-700 opacity-0 pointer-events-none transition-opacity duration-300">
     <span class="text-yellow-400 font-bold">✓</span>
-    <span id="toast-message" class="text-sm font-semibold">Mensagem aqui</span>
+    <span id="toast-message" class="text-sm font-semibold">Mensagem de aviso</span>
   </div>
 
-  <!-- CABEÇALHO -->
+  <!-- CABEÇALHO (TOTALMENTE LIMPO - LOGOTIPO E NOME) -->
   <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-900 text-white shadow-lg sticky top-0 z-30">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+    <div class="max-w-6xl mx-auto px-4 py-5 flex justify-center items-center text-center">
       <div class="flex items-center space-x-3">
-        <div class="bg-amber-500 p-2 rounded-full shadow-inner animate-pulse">
-          <span class="text-xl">🔥</span>
+        <div class="bg-amber-500 p-2.5 rounded-full shadow-inner animate-pulse">
+          <span class="text-xl md:text-2xl">🔥</span>
         </div>
         <div>
-          <h1 id="header-business-name" class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-1">
+          <h1 id="header-business-name" class="text-2xl md:text-3xl font-black tracking-tight">
             Depósito Fogo & Gelo
           </h1>
-          <p class="text-xs text-sky-200">Gelo cristalino & Carvão de alta caloria</p>
+          <p class="text-xs text-sky-200">Gelo cristalino & Carvão de alta qualidade</p>
         </div>
-      </div>
-
-      <div class="flex items-center space-x-3">
-        <!-- Botão de Configuração do Lojista -->
-        <button onclick="toggleConfig(true)" class="p-2 hover:bg-slate-700 rounded-full transition-colors relative group" title="Configurações da Loja">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400 hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-
-        <!-- Botão do Carrinho -->
-        <button onclick="toggleCart(true)" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2 px-4 rounded-full flex items-center space-x-2 shadow-md transition-all transform hover:scale-105">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1" />
-            <circle cx="20" cy="21" r="1" />
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-          </svg>
-          <span id="cart-count-badge" class="bg-slate-950 text-white text-xs px-2 py-0.5 rounded-full">0</span>
-        </button>
       </div>
     </div>
   </header>
 
-  <!-- HERO BANNER -->
-  <div class="bg-gradient-to-b from-slate-900 to-slate-800 text-white pb-10 pt-6 px-4 text-center">
+  <!-- APRESENTAÇÃO / HERO -->
+  <div class="bg-gradient-to-b from-slate-900 to-slate-800 text-white pb-12 pt-8 px-4 text-center">
     <div class="max-w-xl mx-auto">
-      <h2 class="text-2xl md:text-3xl font-extrabold mb-2">Faça seu pedido online!</h2>
+      <h2 class="text-2xl md:text-3xl font-extrabold mb-3">Faça a sua encomenda online!</h2>
       <p class="text-sm text-slate-300 mb-6">
-        Escolha os sacos de carvão e gelo perfeitos para sua festa, churrasco ou comércio. Receba em casa ou retire conosco. Finalize rápido por WhatsApp!
+        Escolha os sacos de carvão e gelo perfeitos para a sua festa, churrasco ou comércio. Receba em sua casa ou levante nas nossas instalações. Finalize rapidamente pelo WhatsApp!
       </p>
       
       <div class="flex flex-wrap justify-center gap-3 text-xs font-semibold">
@@ -91,14 +71,14 @@
           ⚡ Envio imediato via WhatsApp
         </span>
         <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-full flex items-center gap-1">
-          🟢 Aberto para Pedidos
+          🟢 Aberto para Encomendas
         </span>
       </div>
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL (FILTROS E PRODUTOS) -->
-  <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+  <!-- CATÁLOGO (FILTROS E PRODUTOS) -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full pb-32">
     
     <!-- CATEGORIAS -->
     <div class="flex justify-center space-x-2 md:space-x-4 mb-8 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
@@ -113,14 +93,24 @@
       </button>
     </div>
 
-    <!-- PRODUTOS GRID -->
+    <!-- GRELHA DE PRODUTOS -->
     <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <!-- Inserido dinamicamente pelo JS -->
+      <!-- Inserido dinamicamente via JS -->
     </div>
 
   </main>
 
-  <!-- BARRA FIXA DO CARRINHO (INFERIOR) -->
+  <!-- BOTÃO FLUTUANTE DO CARRINHO (FAB) -->
+  <button onclick="toggleCart(true)" id="floating-cart-btn" class="fixed bottom-6 right-6 z-40 bg-sky-500 hover:bg-sky-400 text-slate-950 p-4 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+    <span id="floating-cart-badge" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white transform scale-0 transition-transform duration-300">0</span>
+  </button>
+
+  <!-- BARRA INFERIOR FLUTUANTE DA ENCOMENDA -->
   <div id="sticky-cart-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-2xl p-4 z-30 transform translate-y-full transition-transform duration-300 hidden">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center space-x-4">
@@ -131,43 +121,43 @@
           </svg>
         </div>
         <div>
-          <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Seu Carrinho</p>
-          <p id="sticky-cart-info" class="text-lg font-black text-slate-900">0 itens no total</p>
+          <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">O Seu Carrinho</p>
+          <p id="sticky-cart-info" class="text-lg font-black text-slate-900">0 itens selecionados</p>
         </div>
       </div>
 
       <div class="flex items-center space-x-4 w-full sm:w-auto">
         <button onclick="toggleCart(true)" id="btn-sticky-finalize" class="w-full sm:w-auto flex-grow sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-white font-black py-3 px-8 rounded-full shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all text-center flex items-center justify-center gap-2">
-          📝 Ver Carrinho & Finalizar (R$ 0,00)
+          📝 Ver Carrinho e Finalizar (R$ 0,00)
         </button>
       </div>
     </div>
   </div>
 
-  <!-- DRAWER DO CARRINHO (FLUTUANTE DIREITA) -->
+  <!-- GAVETA (DRAWER) DO CARRINHO -->
   <div id="cart-drawer-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex justify-end opacity-0 pointer-events-none transition-opacity duration-300" onclick="toggleCart(false)">
     <div id="cart-drawer" class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl translate-x-full drawer-transition overflow-hidden" onclick="event.stopPropagation()">
       
-      <!-- Header do Drawer -->
+      <!-- Cabeçalho -->
       <div class="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
         <div class="flex items-center space-x-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
           </svg>
-          <h3 class="text-lg font-black">Seu Carrinho</h3>
+          <h3 class="text-lg font-black">O Seu Carrinho</h3>
         </div>
         <button onclick="toggleCart(false)" class="text-slate-400 hover:text-white transition-colors p-1">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
 
-      <!-- Conteúdo do Carrinho -->
+      <!-- Content -->
       <div id="cart-items-container" class="flex-grow overflow-y-auto p-5 space-y-4">
-        <!-- Itens inseridos dinamicamente -->
+        <!-- Itens inseridos por JS -->
       </div>
 
-      <!-- Rodapé do Carrinho -->
+      <!-- Rodapé -->
       <div id="cart-drawer-footer" class="border-t border-slate-200 p-5 bg-slate-50 space-y-4 hidden">
         <div class="space-y-1">
           <div class="flex justify-between text-slate-500 font-semibold text-sm">
@@ -175,13 +165,13 @@
             <span id="cart-drawer-subtotal">R$ 0,00</span>
           </div>
           <div class="flex justify-between text-xs text-slate-400">
-            <span>*Taxas de entrega aplicadas no passo seguinte.</span>
+            <span>*Custos de entrega aplicados no checkout.</span>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <button onclick="clearCart()" class="py-3 px-4 border border-red-200 hover:bg-red-50 text-red-600 font-bold rounded-full text-xs transition-colors">
-            🗑️ Limpar Tudo
+            🗑️ Esvaziar
           </button>
           <button onclick="openCheckout()" class="py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black rounded-full text-xs transition-all shadow-md flex items-center justify-center gap-1">
             Continuar ➔
@@ -192,89 +182,89 @@
     </div>
   </div>
 
-  <!-- MODAL DE CHECKOUT -->
+  <!-- MODAL DE CHECKOUT (DADOS DA ENCOMENDA) -->
   <div id="checkout-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col">
       
-      <!-- Header -->
+      <!-- Cabeçalho -->
       <div class="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
         <h3 class="text-lg font-black flex items-center gap-2">
-          📋 Finalizar Pedido no WhatsApp
+          📋 Finalizar Encomenda no WhatsApp
         </h3>
         <button onclick="toggleCheckout(false)" class="text-slate-400 hover:text-white transition-colors p-1">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
 
-      <!-- Formulário de Checkout -->
+      <!-- Formulário -->
       <form id="checkout-form" onsubmit="handleFinalizeOrder(event)" class="p-6 overflow-y-auto space-y-5 flex-grow">
         
         <!-- Informações Pessoais -->
         <div class="space-y-3">
-          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Suas Informações</h4>
+          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">As Suas Informações</h4>
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Seu Nome *</label>
+            <label class="block text-xs font-bold text-slate-700 mb-1">O Seu Nome *</label>
             <input type="text" id="cust-name" required placeholder="Ex: João Silva" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Telefone (opcional)</label>
-            <input type="tel" id="cust-phone" placeholder="Ex: (13) 99999-9999" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500" />
+            <label class="block text-xs font-bold text-slate-700 mb-1">Telemóvel (opcional)</label>
+            <input type="tel" id="cust-phone" placeholder="Ex: 912 345 678" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500" />
           </div>
         </div>
 
-        <!-- Tipo de Recebimento -->
+        <!-- Tipo de Encomenda -->
         <div class="space-y-3">
-          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Tipo de Recebimento</h4>
+          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Método de Entrega</h4>
           <div class="grid grid-cols-2 gap-3">
             <button type="button" id="btn-delivery-home" onclick="setDeliveryType('entrega')" class="p-3 rounded-xl border flex flex-col items-center justify-center gap-1 font-bold text-xs transition-all border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="3" /><circle cx="19" cy="18" r="3" /><path d="M12 18V12h4l3 3m-4-7h-5L9 12H5" /></svg>
-              Enviar em Casa
+              Entrega ao Domicílio
             </button>
             <button type="button" id="btn-delivery-store" onclick="setDeliveryType('retirada')" class="p-3 rounded-xl border flex flex-col items-center justify-center gap-1 font-bold text-xs transition-all border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-              Retirar no Local
+              Levantamento na Loja
             </button>
           </div>
         </div>
 
-        <!-- Endereço de Entrega (Condicional) -->
+        <!-- Morada de Entrega -->
         <div id="address-block" class="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-          <h4 class="text-xs font-bold text-slate-700">Endereço de Entrega</h4>
+          <h4 class="text-xs font-bold text-slate-700">Morada de Entrega</h4>
           <div>
-            <label class="block text-[10px] font-bold text-slate-500 mb-1">Rua, Número, Complemento *</label>
-            <input type="text" id="cust-address" required placeholder="Rua das Flores, 123" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500" />
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">Rua, Número, Porta *</label>
+            <input type="text" id="cust-address" required placeholder="Rua Central, nº 10 - 2º Esq" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500" />
           </div>
           <div>
-            <label class="block text-[10px] font-bold text-slate-500 mb-1">Bairro</label>
-            <input type="text" id="cust-neighborhood" placeholder="Ex: Gonzaga" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500" />
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">Localidade / Bairro</label>
+            <input type="text" id="cust-neighborhood" placeholder="Ex: Centro" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500" />
           </div>
         </div>
 
-        <!-- Forma de Pagamento -->
+        <!-- Método de Pagamento -->
         <div class="space-y-3">
-          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Forma de Pagamento</h4>
+          <h4 class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Método de Pagamento</h4>
           <div class="grid grid-cols-3 gap-2">
-            <button type="button" id="btn-pay-pix" onclick="setPaymentMethod('pix')" class="p-3 rounded-xl border font-bold text-xs transition-all border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20">📱 Pix</button>
+            <button type="button" id="btn-pay-pix" onclick="setPaymentMethod('pix')" class="p-3 rounded-xl border font-bold text-xs transition-all border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20">📱 Pix / MBWay</button>
             <button type="button" id="btn-pay-dinheiro" onclick="setPaymentMethod('dinheiro')" class="p-3 rounded-xl border font-bold text-xs transition-all border-slate-200 bg-slate-50 text-slate-600">💵 Dinheiro</button>
             <button type="button" id="btn-pay-cartao" onclick="setPaymentMethod('cartao')" class="p-3 rounded-xl border font-bold text-xs transition-all border-slate-200 bg-slate-50 text-slate-600">💳 Cartão</button>
           </div>
 
           <div id="change-block" class="mt-2 hidden">
             <label class="block text-xs font-bold text-slate-700 mb-1">Precisa de troco para quanto?</label>
-            <input type="text" id="cust-change" placeholder="Ex: R$ 50 ou R$ 100" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none" />
+            <input type="text" id="cust-change" placeholder="Ex: 50€ ou 100€" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none" />
           </div>
         </div>
 
         <!-- Observações -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1">Alguma observação importante?</label>
-          <textarea id="cust-notes" rows="2" placeholder="Ex: Deixar na portaria, campainha quebrada..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none"></textarea>
+          <textarea id="cust-notes" rows="2" placeholder="Ex: Deixar na portaria, campainha avariada..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none"></textarea>
         </div>
 
-        <!-- Resumo Financeiro -->
+        <!-- Resumo -->
         <div class="border-t border-slate-100 pt-4 space-y-2">
           <div class="flex justify-between text-sm text-slate-600">
-            <span>Itens:</span>
+            <span>Produtos:</span>
             <span id="checkout-subtotal">R$ 0,00</span>
           </div>
           <div id="checkout-delivery-row" class="flex justify-between text-sm text-slate-600">
@@ -287,24 +277,24 @@
           </div>
         </div>
 
-        <!-- Ações Checkout -->
+        <!-- Botões -->
         <div class="grid grid-cols-2 gap-3 pt-3">
           <button type="button" onclick="toggleCheckout(false)" class="py-3 px-4 border border-slate-200 text-slate-700 font-bold rounded-full text-sm transition-colors hover:bg-slate-50">
             Voltar
           </button>
           <button type="submit" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-full text-sm transition-all shadow-md flex items-center justify-center gap-1">
-            🟢 Enviar WhatsApp
+            🟢 Enviar por WhatsApp
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- PANEL DE CONFIGURAÇÃO DO LOJISTA (MODAL) -->
+  <!-- MODAL DE CONFIGURAÇÃO DO LOJISTA -->
   <div id="config-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col">
       
-      <!-- Header -->
+      <!-- Cabeçalho -->
       <div class="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
         <div>
           <h3 class="text-lg font-black">⚙️ Painel de Edição da Loja</h3>
@@ -315,17 +305,17 @@
         </button>
       </div>
 
-      <!-- Abas de Configuração -->
+      <!-- Abas de Navegação interna -->
       <div class="flex border-b border-slate-200">
         <button type="button" id="btn-config-tab-dados" onclick="setConfigTab('dados')" class="flex-1 py-3 text-center text-sm font-bold border-b-2 border-sky-500 text-sky-600">
-          📋 Dados de Contato e Taxas
+          📋 Dados de Contacto e Taxas
         </button>
         <button type="button" id="btn-config-tab-produtos" onclick="setConfigTab('produtos')" class="flex-1 py-3 text-center text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-          🔥 Ice & Carvão Produtos
+          🔥 Produtos (Carvão e Gelo)
         </button>
       </div>
 
-      <!-- Conteúdo de Configuração -->
+      <!-- Formulário -->
       <form id="config-form" onsubmit="saveConfiguration(event)" class="flex-grow overflow-y-auto flex flex-col justify-between">
         
         <div class="p-6 space-y-6">
@@ -339,8 +329,8 @@
 
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp de Recebimento (Ex: 5513999999999)</label>
-              <input type="text" id="cfg-store-phone" required placeholder="Código país + DDD + Celular" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500" />
-              <span class="text-[10px] text-slate-400 block mt-1">Dica: 55 para Brasil, o DDD da sua região e o número completo. Apenas números.</span>
+              <input type="text" id="cfg-store-phone" required placeholder="Código do país + DDD + Telemóvel" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500" />
+              <span class="text-[10px] text-slate-400 block mt-1">Insira 55 para Brasil (ou 351 para Portugal), o DDD da região e o número. Apenas números.</span>
             </div>
 
             <div>
@@ -351,7 +341,12 @@
 
           <!-- Aba Produtos -->
           <div id="config-tab-produtos-content" class="space-y-4 hidden">
-            <p class="text-xs text-slate-500 italic">Mude preços, nomes ou embalagens. Tudo será atualizado instantaneamente para os clientes.</p>
+            <div class="flex justify-between items-center">
+              <p class="text-xs text-slate-500 italic">Altere preços, nomes ou embalagens à sua escolha.</p>
+              <button type="button" onclick="resetToDefaultProducts()" class="text-xs text-red-500 hover:text-red-700 underline font-bold">
+                Restaurar Catálogo Padrão
+              </button>
+            </div>
             <div id="config-products-list" class="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
               <!-- Gerado via JS -->
             </div>
@@ -359,13 +354,13 @@
 
         </div>
 
-        <!-- Rodapé Config -->
+        <!-- Rodapé do formulário -->
         <div class="border-t border-slate-100 p-6 bg-slate-50 flex justify-end space-x-3">
           <button type="button" onclick="toggleConfig(false)" class="py-2.5 px-6 border border-slate-200 text-slate-700 font-bold rounded-full text-xs hover:bg-slate-100 transition-colors">
             Cancelar
           </button>
           <button type="submit" class="py-2.5 px-8 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black rounded-full text-xs shadow-md">
-            💾 Salvar Alterações
+            💾 Guardar Alterações
           </button>
         </div>
 
@@ -373,40 +368,69 @@
     </div>
   </div>
 
-  <!-- LOGICA DO APLICATIVO EM JAVASCRIPT -->
+  <!-- RODAPÉ DA PÁGINA (COM ACESSO ADMINISTRATIVO SUBTIL) -->
+  <footer class="bg-slate-900 text-slate-400 py-10 px-4 mt-auto border-t border-slate-800">
+    <div class="max-w-6xl mx-auto flex flex-col items-center justify-center space-y-4 text-center">
+      <p class="text-sm">© 2026 - Todos os direitos reservados.</p>
+      
+      <!-- Botão de Configuração do Lojista discreto no fundo -->
+      <button onclick="toggleConfig(true)" class="flex items-center space-x-2 text-xs text-slate-400 hover:text-sky-400 transition-colors bg-slate-800/40 hover:bg-slate-800/80 py-2.5 px-5 rounded-xl border border-slate-700 shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>Painel de Administração do Lojista</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- SCRIPT COM LOGICA INTEGRADORA -->
   <script>
-    // PRODUTOS PADRÃO
+    // PRODUTOS DE BACKUP/PADRÃO
     const INITIAL_PRODUCTS = [
       { id: 1, name: 'Gelo em Cubo Tradicional', category: 'gelo', price: 12.00, size: 'Pacote 5kg', desc: 'Gelo de água filtrada cristalino, ideal para drinks e baldes de bebidas.', badge: 'Mais vendido' },
       { id: 2, name: 'Gelo Triturado/Moído', category: 'gelo', price: 10.00, size: 'Pacote 5kg', desc: 'Perfeito para resfriamento rápido e conservação de bebidas na caixa térmica.', badge: null },
       { id: 3, name: 'Gelo em Cubo Econômico', category: 'gelo', price: 20.00, size: 'Pacote 10kg', desc: 'Excelente custo-benefício para festas, churrascos e grandes eventos.', badge: 'Econômico' },
-      { id: 4, name: 'Gelo Gourmet de Coco', category: 'gelo', price: 4.00, size: 'Copinho 200ml', desc: 'Gelo saborizado de água de coco integral. Perfeito para realçar seu Gin ou Whisky.', badge: 'Premium' },
+      { id: 4, name: 'Gelo Gourmet de Coco', category: 'gelo', price: 4.00, size: 'Copinho 200ml', desc: 'Gelo saborizado de água de coco integral. Perfeito para realçar as suas bebidas.', badge: 'Premium' },
       { id: 5, name: 'Carvão Vegetal Premium', category: 'carvao', price: 17.50, size: 'Saco 4kg', desc: 'Carvão selecionado de Eucalipto. Acendimento fácil, pouca fumaça e brasa duradoura.', badge: 'Recomendado' },
-      { id: 6, name: 'Carvão Churrasco Gigante', category: 'carvao', price: 32.00, size: 'Saco 8kg', desc: 'Pedaços grandes selecionados. Ideal para churrasqueiros exigentes e assados longos.', badge: 'Gigante' },
+      { id: 6, name: 'Carvão Churrasco Gigante', category: 'carvao', price: 32.00, size: 'Saco 8kg', desc: 'Pedaços grandes selecionados. Ideal para assados longos.', badge: 'Gigante' },
       { id: 7, name: 'Briquete de Carvão Ecológico', category: 'carvao', price: 25.00, size: 'Saco 5kg', desc: 'Carvão compactado de altíssimo rendimento. Queima uniforme e sem faíscas.', badge: null },
-      { id: 8, name: 'Acendedor de Carvão Gel', category: 'carvao', price: 9.00, size: 'Pote 400g', desc: 'Álcool em gel acendedor de alta eficiência. Acenda seu carvão com segurança e rapidez.', badge: null }
+      { id: 8, name: 'Acendedor de Carvão Gel', category: 'carvao', price: 9.00, size: 'Pote 400g', desc: 'Álcool em gel acendedor de alta eficiência. Acenda com toda a segurança.', badge: null }
     ];
 
-    // ESTADO GLOBAL DO APP
+    // ESTADO DA APLICAÇÃO
     let state = {
       products: [],
       whatsappNumber: '5513999999999',
       businessName: 'Depósito Fogo & Gelo',
       deliveryFee: 5.00,
-      cart: [], // Formato: { product: {}, quantity: x }
+      cart: [], // { product: {}, quantity: x }
       activeTab: 'todos',
       customer: {
         deliveryType: 'entrega', // 'entrega' ou 'retirada'
-        paymentMethod: 'pix' // 'pix', 'dinheiro', 'cartao'
+        paymentMethod: 'pix'
       }
     };
 
-    // INICIALIZAÇÃO
+    // INICIALIZAÇÃO SEGURA
     window.addEventListener('DOMContentLoaded', () => {
-      // Carregar do localStorage se existir
-      const savedProducts = localStorage.getItem('html_loja_produtos');
-      state.products = savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS;
+      // 1. Carregamento defensivo dos produtos do LocalStorage
+      try {
+        const savedProducts = localStorage.getItem('html_loja_produtos');
+        if (savedProducts) {
+          state.products = JSON.parse(savedProducts);
+        }
+      } catch (e) {
+        console.error("Erro ao ler produtos do localStorage, usando os valores originais:", e);
+      }
 
+      // Mecanismo de AUTO-REPARAÇÃO se a lista estiver corrompida ou vazia
+      if (!Array.isArray(state.products) || state.products.length === 0) {
+        state.products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
+        localStorage.setItem('html_loja_produtos', JSON.stringify(state.products));
+      }
+
+      // 2. Carregar outras definições salvaguardando erros
       state.whatsappNumber = localStorage.getItem('html_loja_whatsapp') || '5513999999999';
       state.businessName = localStorage.getItem('html_loja_nome') || 'Depósito Fogo & Gelo';
       state.deliveryFee = parseFloat(localStorage.getItem('html_loja_taxa_entrega') || '5.00');
@@ -415,18 +439,18 @@
       renderCatalog();
     });
 
-    // ATUALIZA ELEMENTOS FIXOS DA LOJA
+    // ATUALIZAR OS TEXTOS GLOBAIS NA PÁGINA
     function applyConfigToDOM() {
       document.getElementById('header-business-name').textContent = state.businessName;
       document.getElementById('hero-delivery-fee').textContent = `R$ ${state.deliveryFee.toFixed(2).replace('.', ',')}`;
       
-      // Preencher painel de configuração com os dados ativos
+      // Atualizar dados de inputs no Painel
       document.getElementById('cfg-store-name').value = state.businessName;
       document.getElementById('cfg-store-phone').value = state.whatsappNumber;
       document.getElementById('cfg-store-fee').value = state.deliveryFee;
     }
 
-    // CUSTOM TOAST
+    // TOAST NOTIFICATIONS
     function showToast(message) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toast-message');
@@ -440,11 +464,10 @@
       }, 3000);
     }
 
-    // FILTRO DE CATEGORIAS
+    // FILTRO DE CATEGORIA ATIVA
     function setCategoryFilter(category) {
       state.activeTab = category;
       
-      // Ajustar visual dos botões
       const tabs = ['todos', 'carvao', 'gelo'];
       tabs.forEach(tab => {
         const btn = document.getElementById(`btn-filter-${tab}`);
@@ -459,7 +482,7 @@
       renderCatalog();
     }
 
-    // RENDERIZAÇÃO DO CATÁLOGO DE PRODUTOS
+    // DESENHAR CARTÕES DE PRODUTOS NO ECRA (GARANTIDO)
     function renderCatalog() {
       const grid = document.getElementById('products-grid');
       grid.innerHTML = '';
@@ -469,6 +492,15 @@
         return p.category === state.activeTab;
       });
 
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400">
+            <p class="font-bold">Nenhum produto encontrado nesta categoria.</p>
+          </div>
+        `;
+        return;
+      }
+
       filtered.forEach(product => {
         const isIce = product.category === 'gelo';
         const cartItem = state.cart.find(item => item.product.id === product.id);
@@ -477,14 +509,13 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-slate-100 flex flex-col h-full group relative";
 
-        // Badge
+        // Badge de Informação
         let badgeHTML = '';
         if (product.badge) {
           const badgeBg = isIce ? 'bg-sky-500' : 'bg-orange-600';
           badgeHTML = `<span class="absolute top-3 left-3 z-10 text-[10px] uppercase font-black px-2.5 py-1 rounded-full text-white shadow-sm ${badgeBg}">${product.badge}</span>`;
         }
 
-        // Hero Ilustração do Card
         const visualBg = isIce 
           ? 'bg-gradient-to-br from-sky-100 via-sky-50 to-blue-100 text-sky-600' 
           : 'bg-gradient-to-br from-slate-800 via-slate-700 to-orange-950 text-orange-500';
@@ -493,13 +524,13 @@
         const labelType = isIce ? 'GELO PREMIUM' : 'CHURRASCO';
         const labelBg = isIce ? 'bg-sky-200/50 text-sky-800' : 'bg-orange-900/40 text-orange-200';
 
-        // Lógica de botões
+        // Botão Adicionar ou Controladores de Quantidade
         let actionButtonsHTML = '';
         if (qty > 0) {
           actionButtonsHTML = `
             <div class="flex items-center justify-between bg-slate-100 rounded-full p-1 border border-slate-200">
               <button onclick="updateQuantity(${product.id}, -1)" class="w-10 h-10 bg-white hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center font-bold text-lg shadow-sm active:scale-95 transition-all">-</button>
-              <span class="font-extrabold text-slate-800 text-sm md:text-base px-2">${qty} no carrinho</span>
+              <span class="font-extrabold text-slate-800 text-sm px-2">${qty} no carrinho</span>
               <button onclick="updateQuantity(${product.id}, 1)" class="w-10 h-10 bg-white hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center font-bold text-lg shadow-sm active:scale-95 transition-all">+</button>
             </div>
           `;
@@ -547,7 +578,7 @@
       });
     }
 
-    // GERENCIAMENTO DE CARRINHO
+    // ADICIONAR E ALTERAR QUANTIDADES
     function addToCart(productId) {
       const product = state.products.find(p => p.id === productId);
       if (!product) return;
@@ -559,11 +590,12 @@
         state.cart.push({ product, quantity: 1 });
       }
 
-      showToast(`${product.name} adicionado!`);
+      showToast(`${product.name} adicionado ao carrinho!`);
       updateCartUI();
       renderCatalog();
     }
 
+    // ALTERAR QUANTIDADES
     function updateQuantity(productId, amount) {
       const item = state.cart.find(item => item.product.id === productId);
       if (!item) return;
@@ -592,28 +624,43 @@
       showToast('Carrinho limpo.');
     }
 
-    // ATUALIZAÇÕES DA ESTRUTURA DO CARRINHO (BADGES, DRAWER E STICKY BAR)
+    // ATUALIZAR INTERFACE DO CARRINHO (FAB FLUTUANTE, BADGES E GAVETA)
     function updateCartUI() {
       const totalItems = state.cart.reduce((acc, item) => acc + item.quantity, 0);
       const subtotal = state.cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
 
-      // Badge superior do header
-      document.getElementById('cart-count-badge').textContent = totalItems;
+      // Atualizar o Distintivo (Badge) no FAB Flutuante
+      const fabBadge = document.getElementById('floating-cart-badge');
+      const fabButton = document.getElementById('floating-cart-btn');
+      fabBadge.textContent = totalItems;
 
-      // Barra inferior flutuante
+      if (totalItems > 0) {
+        fabBadge.classList.remove('scale-0');
+        fabBadge.classList.add('scale-100');
+        // Sobe o botão flutuante para não cobrir a barra inferior de finalizar
+        fabButton.classList.remove('bottom-6');
+        fabButton.classList.add('bottom-28');
+      } else {
+        fabBadge.classList.remove('scale-100');
+        fabBadge.classList.add('scale-0');
+        // Volta o botão flutuante para a posição original
+        fabButton.classList.remove('bottom-28');
+        fabButton.classList.add('bottom-6');
+      }
+
+      // Atualizar barra inferior de checkout
       const stickyBar = document.getElementById('sticky-cart-bar');
       if (totalItems > 0) {
         stickyBar.classList.remove('hidden');
-        // Pequeno timeout para dar efeito de subida suave
         setTimeout(() => stickyBar.classList.remove('translate-y-full'), 10);
         document.getElementById('sticky-cart-info').textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'} no total`;
-        document.getElementById('btn-sticky-finalize').textContent = `📝 Ver Carrinho & Finalizar (R$ ${subtotal.toFixed(2).replace('.', ',')})`;
+        document.getElementById('btn-sticky-finalize').textContent = `📝 Ver Carrinho e Finalizar (R$ ${subtotal.toFixed(2).replace('.', ',')})`;
       } else {
         stickyBar.classList.add('translate-y-full');
         setTimeout(() => stickyBar.classList.add('hidden'), 300);
       }
 
-      // Preencher o Drawer do Carrinho
+      // Drawer Content
       const container = document.getElementById('cart-items-container');
       const footer = document.getElementById('cart-drawer-footer');
       container.innerHTML = '';
@@ -622,8 +669,8 @@
         container.innerHTML = `
           <div class="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-4 pt-16">
             <span class="text-6xl">🛒</span>
-            <p class="font-bold">Seu carrinho está vazio!</p>
-            <p class="text-xs px-10">Adicione carvão ou gelo no catálogo para montar seu pedido.</p>
+            <p class="font-bold">O seu carrinho está vazio!</p>
+            <p class="text-xs px-10">Adicione carvão ou gelo no catálogo para começar a montar a sua encomenda.</p>
           </div>
         `;
         footer.classList.add('hidden');
@@ -634,7 +681,6 @@
         state.cart.forEach(item => {
           const itemDiv = document.createElement('div');
           itemDiv.className = "flex items-center justify-between border-b border-slate-100 pb-3";
-
           const isIce = item.product.category === 'gelo';
           const tagBg = isIce ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-orange-800';
 
@@ -671,7 +717,7 @@
       }
     }
 
-    // MODAL DE CONTROLES (SHOW/HIDE)
+    // MODAL/DRAWER TOGGLES
     function toggleCart(show) {
       const overlay = document.getElementById('cart-drawer-overlay');
       const drawer = document.getElementById('cart-drawer');
@@ -716,7 +762,7 @@
       }
     }
 
-    // PROCESSO DE CHECKOUT E SELEÇÕES
+    // PROCESSO DE ENCOMENDA
     function openCheckout() {
       toggleCart(false);
       toggleCheckout(true);
@@ -785,7 +831,7 @@
       document.getElementById('checkout-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
     }
 
-    // FORMATAÇÃO E ENVIO DO PEDIDO PARA O WHATSAPP
+    // FORMATAÇÃO E SUBMISSÃO DA ENCOMENDA NO WHATSAPP
     function handleFinalizeOrder(event) {
       event.preventDefault();
 
@@ -802,7 +848,7 @@
       }
 
       if (state.customer.deliveryType === 'entrega' && !address) {
-        showToast('Por favor, introduza o endereço de entrega!');
+        showToast('Por favor, introduza a morada de entrega!');
         return;
       }
 
@@ -810,20 +856,20 @@
       const fee = state.customer.deliveryType === 'entrega' ? state.deliveryFee : 0;
       const total = subtotal + fee;
 
-      // Montagem do texto elegante do pedido
-      let msg = `🔥🧊 *PEDIDO - ${state.businessName.toUpperCase()}* 🧊🔥\n`;
+      // Montagem do texto do WhatsApp em Português
+      let msg = `🔥🧊 *ENCOMENDA - ${state.businessName.toUpperCase()}* 🧊🔥\n`;
       msg += `-------------------------------------------\n`;
       msg += `👤 *Cliente:* ${name}\n`;
-      if (phone) msg += `📞 *Tel:* ${phone}\n`;
-      msg += `📦 *Tipo:* ${state.customer.deliveryType === 'entrega' ? '🚚 Entrega em Domicílio' : '🏬 Retirada na Loja'}\n`;
+      if (phone) msg += `📞 *Tel/Telemóvel:* ${phone}\n`;
+      msg += `📦 *Método:* ${state.customer.deliveryType === 'entrega' ? '🚚 Entrega ao Domicílio' : '🏬 Levantamento na Loja'}\n`;
       
       if (state.customer.deliveryType === 'entrega') {
-        msg += `📍 *Endereço:* ${address}\n`;
-        if (neighborhood) msg += `🏘️ *Bairro:* ${neighborhood}\n`;
+        msg += `📍 *Morada:* ${address}\n`;
+        if (neighborhood) msg += `🏘️ *Bairro/Localidade:* ${neighborhood}\n`;
       }
       
       msg += `-------------------------------------------\n`;
-      msg += `🛒 *ITENS DO PEDIDO:*\n`;
+      msg += `🛒 *PRODUTOS DA ENCOMENDA:*\n`;
       
       state.cart.forEach(item => {
         const itemTotal = (item.product.price * item.quantity).toFixed(2);
@@ -837,7 +883,7 @@
         msg += `🚚 *Taxa de Entrega:* R$ ${fee.toFixed(2).replace('.', ',')}\n`;
       }
       
-      msg += `💵 *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}\n`;
+      msg += `💵 *TOTAL A PAGAR:* R$ ${total.toFixed(2).replace('.', ',')}\n`;
       msg += `💳 *Pagamento:* ${state.customer.paymentMethod.toUpperCase()}`;
       
       if (state.customer.paymentMethod === 'dinheiro' && change) {
@@ -850,16 +896,16 @@
       }
       
       msg += `-------------------------------------------\n`;
-      msg += `⚡ _Pedido enviado via Catálogo Digital_`;
+      msg += `⚡ _Encomenda enviada via Catálogo Digital_`;
 
       const encodedText = encodeURIComponent(msg);
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${state.whatsappNumber}&text=${encodedText}`;
 
-      // Redireciona o cliente para o seu WhatsApp
+      // Abre a API de envio do WhatsApp
       window.open(whatsappUrl, '_blank');
     }
 
-    // SISTEMA DE CONTROLE DE CONFIGURAÇÃO (LOJISTA / ADMIN)
+    // PAINEL DE CONFIGURAÇÕES (ADMINISTRADOR)
     function setConfigTab(tab) {
       const btnDados = document.getElementById('btn-config-tab-dados');
       const btnProdutos = document.getElementById('btn-config-tab-produtos');
@@ -879,7 +925,7 @@
       }
     }
 
-    // RENDERIZA LISTA DE PRODUTOS EDITÁVEIS NO PAINEL DE CONFIGURAÇÕES
+    // RENDERIZAR OS PRODUTOS EDITÁVEIS NO PAINEL
     function renderConfigProducts() {
       const container = document.getElementById('config-products-list');
       container.innerHTML = '';
@@ -917,7 +963,7 @@
       });
     }
 
-    // ATUALIZA PRODUTO TEMPORARIAMENTE NO PAINEL DE CONFIGURAÇÕES
+    // ATUALIZAÇÃO DO ESTADO INTERNO DOS PRODUTOS CONFIGURADOS
     function updateConfigProductState(index, field, value) {
       if (field === 'price') {
         state.products[index][field] = parseFloat(value) || 0;
@@ -926,7 +972,19 @@
       }
     }
 
-    // SALVAR CONFIGURAÇÕES NO LOCALSTORAGE
+    // DISPOSITIVO DE SEGURANÇA: RESTAURAR PADRÃO MANUALMENTE
+    function resetToDefaultProducts() {
+      if (confirm('Tem a certeza que deseja restaurar a lista padrão de produtos? Todas as suas alterações em preços e nomes de produtos serão apagadas.')) {
+        state.products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
+        localStorage.setItem('html_loja_produtos', JSON.stringify(state.products));
+        renderConfigProducts();
+        renderCatalog();
+        updateCartUI();
+        showToast('Produtos originais restaurados com sucesso!');
+      }
+    }
+
+    // GUARDAR TODAS AS CONFIGURAÇÕES NO LOCALSTORAGE DO NAVEGADOR
     function saveConfiguration(event) {
       event.preventDefault();
 
@@ -934,14 +992,14 @@
       const phoneInput = document.getElementById('cfg-store-phone').value.trim();
       const fee = parseFloat(document.getElementById('cfg-store-fee').value) || 0;
 
-      // Sanitiza celular do lojista (deixa só números)
+      // Limpar caracteres não numéricos do telemóvel do lojista
       const sanitizedPhone = phoneInput.replace(/\D/g, '');
 
       state.businessName = name;
       state.whatsappNumber = sanitizedPhone;
       state.deliveryFee = fee;
 
-      // Persiste no navegador do lojista
+      // Salvaguardar no LocalStorage do lojista
       localStorage.setItem('html_loja_nome', name);
       localStorage.setItem('html_loja_whatsapp', sanitizedPhone);
       localStorage.setItem('html_loja_taxa_entrega', fee.toString());
@@ -951,7 +1009,7 @@
       renderCatalog();
       updateCartUI();
       toggleConfig(false);
-      showToast('Configurações salvas com sucesso!');
+      showToast('Configurações guardadas com sucesso!');
     }
   </script>
 </body>
