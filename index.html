@@ -43,7 +43,38 @@
 </head>
 <body class="text-gray-900 antialiased min-h-screen flex flex-col">
 
-    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+    <!-- NOVO: Tela de Login -->
+    <div id="login-container" class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 fade-in">
+        <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md border border-gray-200">
+            <div>
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <i data-lucide="lock" class="h-6 w-6 text-green-600"></i>
+                </div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Acesso Restrito</h2>
+                <p class="mt-2 text-center text-sm text-gray-600">QuitandaManager Admin</p>
+            </div>
+            <form class="mt-8 space-y-6" onsubmit="processLogin(event)">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <label for="email-address" class="sr-only">E-mail</label>
+                        <input id="email-address" name="email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-lg focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="E-mail administrador">
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Senha</label>
+                        <input id="password" name="password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-lg focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="Senha">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" id="btn-login" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm font-bold">
+                        Entrar no Sistema
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- O App agora começa escondido com a classe "hidden" e recebe um ID -->
+    <header id="app-header" class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10 hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center space-x-3">
@@ -52,10 +83,16 @@
                     </div>
                     <h1 class="text-2xl font-bold text-gray-900 tracking-tight">QuitandaManager</h1>
                 </div>
-                <button id="btn-novo-produto" onclick="openModal()" class="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-sm hidden">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                    <span class="hidden sm:inline">Novo Produto</span>
-                </button>
+                <!-- NOVO: Container de botões com botão "Sair" -->
+                <div class="flex items-center space-x-3">
+                    <button id="btn-novo-produto" onclick="openModal()" class="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-sm hidden">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        <span class="hidden sm:inline">Novo Produto</span>
+                    </button>
+                    <button onclick="processLogout()" class="text-gray-500 hover:text-red-600 p-2 rounded-md transition-colors bg-gray-100 hover:bg-red-50" title="Sair do sistema">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="flex space-x-4 border-b border-gray-200">
@@ -72,7 +109,7 @@
         </div>
     </header>
 
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <main id="app-main" class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full hidden">
         
         <!-- Alertas Globais -->
         <div id="alert-container" class="mb-6 hidden fade-in">
@@ -244,7 +281,8 @@
     <!-- Scripts Firebase e Lógica da Aplicação -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // NOVO: Importando funções de Login com E-mail e Senha
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
@@ -282,38 +320,91 @@
         const formatDateTime = (isoString) => new Date(isoString).toLocaleString('pt-BR');
         const generateSKU = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Inicialização de Autenticação
-        const initAuth = async () => {
+        // Referências para desligar os listeners
+        let unsubProducts = null;
+        let unsubSales = null;
+
+        // ==========================
+        // AUTHENTICATION LOGIC
+        // ==========================
+        window.processLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email-address').value;
+            const pass = document.getElementById('password').value;
+            const btn = document.getElementById('btn-login');
+            
+            btn.disabled = true;
+            btn.innerText = 'Entrando...';
+            
             try {
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.error("Erro de Auth:", err);
-                showAlert("Erro ao autenticar. Verifique suas chaves do Firebase e se o Login Anônimo está ativado.", "error");
+                await signInWithEmailAndPassword(auth, email, pass);
+                document.getElementById('email-address').value = '';
+                document.getElementById('password').value = '';
+            } catch (error) {
+                console.error(error);
+                let msg = "Erro ao fazer login. Verifique suas credenciais.";
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = "E-mail ou senha incorretos.";
+                }
+                alert(msg); // Usamos um alert comum aqui, pois o layout principal pode estar oculto
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Entrar no Sistema';
             }
         };
 
-        // Listeners do Banco
+        window.processLogout = async () => {
+            try {
+                await signOut(auth);
+            } catch(e) {
+                console.error(e);
+            }
+        };
+
+        // Listeners do Banco e Auth (Monitora se está logado ou não)
         onAuthStateChanged(auth, (currentUser) => {
             window.user = currentUser;
+            
+            const loginContainer = document.getElementById('login-container');
+            const appHeader = document.getElementById('app-header');
+            const appMain = document.getElementById('app-main');
+
             if (currentUser) {
+                // Usuário Logado: Esconde o login, mostra o sistema
+                loginContainer.classList.add('hidden');
+                appHeader.classList.remove('hidden');
+                appMain.classList.remove('hidden');
+
                 const productsRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
                 const salesRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales');
 
-                onSnapshot(productsRef, (snapshot) => {
+                unsubProducts = onSnapshot(productsRef, (snapshot) => {
                     window.products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     window.products.sort((a, b) => a.name.localeCompare(b.name));
                     reRenderCurrentTab();
                 }, (err) => console.error(err));
 
-                onSnapshot(salesRef, (snapshot) => {
+                unsubSales = onSnapshot(salesRef, (snapshot) => {
                     window.sales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     window.sales.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     if(window.currentTab === 'caixa') renderCaixa();
                 }, (err) => console.error(err));
+            } else {
+                // Usuário Deslogado: Mostra o login, esconde o sistema
+                loginContainer.classList.remove('hidden');
+                appHeader.classList.add('hidden');
+                appMain.classList.add('hidden');
+
+                // Para de escutar o banco se estava escutando
+                if(unsubProducts) unsubProducts();
+                if(unsubSales) unsubSales();
+
+                // Limpa os dados em memória por segurança
+                window.products = [];
+                window.sales = [];
+                window.cart = [];
             }
         });
-
-        initAuth();
 
         // Inicializa icones pela primeira vez
         lucide.createIcons();
