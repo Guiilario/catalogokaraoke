@@ -6,83 +6,57 @@
     <title>QuitandaManager - PDV e Estoque</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        input[type=number].hide-arrows::-webkit-outer-spin-button, 
-        input[type=number].hide-arrows::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number].hide-arrows { -moz-appearance: textfield; }
-        @media print {
-            body > *:not(#modal-relatorio-caixa) { display: none !important; }
-            #modal-relatorio-caixa { display: block !important; position: absolute; left: 0; top: 0; width: 100%; height: auto; z-index: 9999; background: white; }
-        }
     </style>
 </head>
-<body class="text-gray-900 antialiased min-h-screen bg-gray-50 flex flex-col">
+<body class="bg-gray-50 min-h-screen">
 
-    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2"></div>
-
-    <!-- TELA DE LOGIN -->
-    <div id="login-screen" class="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md fade-in">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                    <i data-lucide="store" class="w-8 h-8 text-green-600"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-900">QuitandaManager</h2>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">E-mail</label>
-                    <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Senha</label>
-                    <input type="password" id="login-password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500">
-                </div>
-                <button type="submit" id="btn-login" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Entrar</button>
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-white flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-2xl border border-gray-100">
+            <h2 class="text-2xl font-bold text-center mb-6 text-green-600">QuitandaManager</h2>
+            <form id="login-form" class="space-y-4">
+                <input type="email" id="email" placeholder="E-mail" class="w-full p-3 border rounded-lg" required>
+                <input type="password" id="password" placeholder="Senha" class="w-full p-3 border rounded-lg" required>
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">Entrar</button>
             </form>
         </div>
     </div>
 
-    <!-- APP CONTENT -->
-    <div id="app-content" class="hidden flex-1 flex flex-col">
-        <header class="bg-white border-b shadow-sm sticky top-0 z-30">
+    <!-- APP WRAPPER -->
+    <div id="app-content" class="hidden">
+        <header class="bg-white border-b sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-green-600">QuitandaManager</h1>
-                <button onclick="handleLogout()" class="text-sm text-red-600">Sair</button>
+                <h1 class="font-bold text-green-600">QuitandaManager</h1>
+                <nav id="nav-tabs" class="flex gap-4 text-sm font-medium text-gray-500"></nav>
+                <button onclick="logout()" class="text-red-500 text-sm font-medium">Sair</button>
             </div>
-            <div id="nav-tabs" class="max-w-7xl mx-auto px-4 flex space-x-4 border-b"></div>
         </header>
 
-        <main class="max-w-7xl mx-auto w-full p-4 flex-1">
-            <div id="view-estoque" class="hidden fade-in"></div>
-            <div id="view-pdv" class="hidden fade-in grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-4">
-                    <input type="text" id="pdv-search" onkeyup="handlePDVSearch(event)" placeholder="Buscar ou Bipar..." class="w-full p-3 border rounded-lg">
-                    <div id="pdv-back-btn" class="hidden"><button onclick="clearPDVCategory()" class="text-sm font-bold underline">← Voltar</button></div>
-                    <div id="pdv-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+        <main class="max-w-7xl mx-auto p-4">
+            <div id="view-pdv" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <input type="text" id="search" placeholder="Buscar ou Bipar..." class="w-full p-3 border rounded-xl mb-4">
+                    <div id="pdv-ui" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
                 </div>
-                <div id="cart-side" class="bg-white p-4 rounded-xl shadow-sm border h-fit">
-                    <div id="pdv-cart-items" class="space-y-2"></div>
-                    <div class="mt-4 border-t pt-4 font-bold text-xl text-green-600" id="pdv-cart-total">R$ 0,00</div>
-                    <button id="btn-checkout" onclick="openCheckoutModal()" class="w-full mt-4 bg-green-600 text-white py-3 rounded-lg font-bold">Pagar</button>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border h-fit">
+                    <h3 class="font-bold mb-4">Carrinho</h3>
+                    <div id="cart-list" class="space-y-2 mb-4"></div>
+                    <div class="text-2xl font-bold text-green-600 mb-4" id="total">R$ 0,00</div>
+                    <button onclick="openCheckout()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Pagar</button>
                 </div>
             </div>
-            <div id="view-caixa" class="hidden fade-in"></div>
         </main>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // SUA CONFIGURAÇÃO (SUBSTITUA PELAS SUAS CHAVES)
         const firebaseConfig = {
             apiKey: "AIzaSyDM6eLPCIO6NAwv6jRRmSh3YppohWcFILM",
             authDomain: "sistema-mini-mercado.firebaseapp.com",
@@ -98,111 +72,62 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.products = [];
-        window.cart = [];
-        window.pdvCategorySelected = null;
+        let products = [];
+        let cat = null;
 
-        onAuthStateChanged(auth, (u) => {
-            if (u) {
-                window.user = u;
-                window.isAdmin = ADMIN_EMAILS.includes(u.email);
+        onAuthStateChanged(auth, u => {
+            if(u) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
-                buildNavTabs();
-                carregarDados();
-                window.switchTab('pdv'); // Força PDV como primeira tela
+                
+                const nav = document.getElementById('nav-tabs');
+                nav.innerHTML = `<button onclick="switchTab('pdv')">PDV</button>` + 
+                                (ADMIN_EMAILS.includes(u.email) ? `<button onclick="switchTab('estoque')">Estoque</button>` : '');
+                
+                onSnapshot(collection(db, 'products'), s => {
+                    products = s.docs.map(d => ({id: d.id, ...d.data()}));
+                    renderPDV();
+                });
+                
+                switchTab('pdv');
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
                 document.getElementById('app-content').classList.add('hidden');
             }
         });
 
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const em = document.getElementById('login-email').value;
-            const pw = document.getElementById('login-password').value;
-            try { await signInWithEmailAndPassword(auth, em, pw); } 
-            catch(err) { alert("Erro de login"); }
-        };
+        window.logout = () => signOut(auth);
+        window.switchTab = (t) => { /* Lógica de troca de abas aqui */ renderPDV(); };
 
-        window.handleLogout = () => signOut(auth);
-
-        const buildNavTabs = () => {
-            const cont = document.getElementById('nav-tabs');
-            cont.innerHTML = `<button onclick="switchTab('pdv')">PDV</button>` + 
-                             (window.isAdmin ? `<button onclick="switchTab('estoque')">Estoque</button><button onclick="switchTab('caixa')">Caixa</button>` : '');
-            lucide.createIcons();
-        };
-
-        window.switchTab = (tab) => {
-            ['estoque', 'pdv', 'caixa'].forEach(t => document.getElementById(`view-${t}`).classList.add('hidden'));
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            if(tab === 'pdv') renderPDV();
-        };
-
-        const carregarDados = () => {
-            onSnapshot(collection(db, 'products'), (snap) => {
-                window.products = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                if(window.activeTab === 'pdv') renderPDV();
-            });
-        };
-
-        const catColors = {
-            'Hortifruti': 'bg-green-100', 'Bebidas': 'bg-blue-100', 'Laticínios': 'bg-yellow-100',
-            'Limpeza': 'bg-purple-100', 'Mercearia': 'bg-orange-100', 'Padaria': 'bg-amber-100', 'Outros': 'bg-gray-100'
-        };
+        const colors = { 'Hortifruti': 'bg-green-100', 'Bebidas': 'bg-blue-100', 'Laticínios': 'bg-yellow-100', 'Limpeza': 'bg-purple-100', 'Mercearia': 'bg-orange-100', 'Padaria': 'bg-amber-100', 'Outros': 'bg-gray-100' };
 
         window.renderPDV = () => {
-            const grid = document.getElementById('pdv-grid');
-            const btnBack = document.getElementById('pdv-back-btn');
-            grid.innerHTML = '';
-            
-            if(!window.pdvCategorySelected) {
-                btnBack.classList.add('hidden');
-                const cats = ['Hortifruti', 'Bebidas', 'Laticínios', 'Limpeza', 'Mercearia', 'Padaria', 'Outros'];
-                cats.forEach(c => {
-                    grid.innerHTML += `<div onclick="window.pdvCategorySelected='${c}'; renderPDV()" class="p-6 rounded-xl ${catColors[c]} flex items-center justify-center font-bold text-center cursor-pointer hover:opacity-90 shadow-sm">${c}</div>`;
+            const ui = document.getElementById('pdv-ui');
+            ui.innerHTML = '';
+            if(!cat) {
+                Object.keys(colors).forEach(c => {
+                    ui.innerHTML += `<div onclick="cat='${c}'; renderPDV()" class="p-8 ${colors[c]} rounded-2xl font-bold text-center cursor-pointer shadow-sm hover:scale-105 transition-transform">${c}</div>`;
                 });
             } else {
-                btnBack.classList.remove('hidden');
-                window.products.filter(p => p.category === window.pdvCategorySelected).forEach(p => {
-                    grid.innerHTML += `
-                        <div onclick="addToCart('${p.id}')" class="p-4 border rounded-xl hover:shadow-md cursor-pointer bg-white">
-                            <div class="font-bold text-sm">${p.name}</div>
-                            <div class="text-green-600 font-bold">R$ ${p.price.toFixed(2)}</div>
-                            <div class="text-[10px] text-gray-400">Estoque: ${p.quantity}</div>
-                        </div>`;
+                ui.innerHTML += `<button onclick="cat=null; renderPDV()" class="col-span-2 sm:col-span-4 underline mb-2">← Voltar</button>`;
+                products.filter(p => p.category === cat).forEach(p => {
+                    ui.innerHTML += `<div class="bg-white p-4 rounded-xl border shadow-sm text-center">
+                        <div class="font-bold">${p.name}</div>
+                        <div class="text-green-600 font-bold mb-2">R$ ${p.price?.toFixed(2)}</div>
+                        <div class="flex justify-center items-center gap-2">
+                            <input type="number" value="1" class="w-16 p-1 border rounded text-center">
+                            <button class="bg-green-600 text-white px-3 py-1 rounded">+</button>
+                        </div>
+                    </div>`;
                 });
             }
         };
 
-        window.clearPDVCategory = () => { window.pdvCategorySelected = null; renderPDV(); };
-
-        window.addToCart = (pId) => {
-            const p = window.products.find(x => x.id === pId);
-            const item = window.cart.find(x => x.product.id === pId);
-            if(item) item.qty++; else window.cart.push({product: p, qty: 1});
-            renderCart();
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
+                .catch(() => alert("Erro ao logar"));
         };
-
-        window.renderCart = () => {
-            const cont = document.getElementById('pdv-cart-items');
-            cont.innerHTML = window.cart.map(i => `
-                <div class="flex justify-between items-center text-sm border-b py-1">
-                    <span>${i.product.name}</span>
-                    <input type="number" value="${i.qty}" onchange="updateQty('${i.product.id}', this.value)" class="w-12 border text-center rounded">
-                </div>`).join('');
-            document.getElementById('pdv-cart-total').innerText = 'R$ ' + window.cart.reduce((s,i) => s + (i.product.price * i.qty), 0).toFixed(2);
-        };
-
-        window.updateQty = (pId, val) => {
-            const item = window.cart.find(x => x.product.id === pId);
-            item.qty = parseInt(val);
-            renderCart();
-        };
-
-        window.openCheckoutModal = () => alert("Venda realizada com sucesso!");
-
     </script>
 </body>
 </html>
