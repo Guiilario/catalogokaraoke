@@ -3,32 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuitandaManager - PDV Completo</title>
+    <title>QuitandaManager - PDV e Estoque</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML5 QRCode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Ocultar barra de rolagem mas manter funcionamento */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Ocultar setas numéricas do input type=number */
+        input[type=number].hide-arrows::-webkit-outer-spin-button, 
+        input[type=number].hide-arrows::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number].hide-arrows { -moz-appearance: textfield; }
+        
+        /* Estilos de Impressão para o Relatório de Caixa */
+        @media print {
+            body > *:not(#modal-relatorio-caixa) { display: none !important; }
+            #modal-relatorio-caixa { display: block !important; position: absolute; left: 0; top: 0; width: 100%; height: auto; z-index: 9999; background: white; }
+            #modal-relatorio-caixa .fixed.inset-0.bg-gray-900 { display: none !important; }
+            #modal-relatorio-caixa .print-hide { display: none !important; }
+            .print-area { padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; max-width: 100% !important;}
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div id="app" class="hidden">
-        <nav class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-            <h1 class="font-bold text-green-600 text-xl">QuitandaManager</h1>
-            <div id="nav-menu" class="flex gap-4">
-                <button onclick="changeTab('pdv')" class="text-gray-700 font-semibold hover:text-green-600">PDV</button>
-                <button id="estoque-tab" onclick="changeTab('estoque')" class="hidden text-gray-700 hover:text-green-600">Estoque</button>
-                <button id="caixa-tab" onclick="changeTab('caixa')" class="hidden text-gray-700 hover:text-green-600">Caixa</button>
-                <button onclick="logout()" class="text-red-500 hover:text-red-700">Sair</button>
+<body class="text-gray-900 antialiased min-h-screen bg-gray-50 flex flex-col">
+
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2"></div>
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md fade-in">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <i data-lucide="store" class="w-8 h-8 text-green-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">QuitandaManager</h2>
+                <p class="text-gray-500 mt-1">Faça login para acessar o sistema</p>
             </div>
-        </nav>
-        <main id="main-content" class="p-6 max-w-7xl mx-auto"></main>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" placeholder="seu@email.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" placeholder="••••••••">
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors flex justify-center items-center">
+                    Entrar no Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL (Oculto até logar) -->
+    <div id="app-content" class="hidden flex-1 flex flex-col">
+        
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-green-600 p-2 rounded-lg text-white shadow-sm">
+                            <i data-lucide="package" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900 leading-tight">QuitandaManager</h1>
+                            <p id="user-info" class="text-xs text-gray-500 font-medium">Carregando...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="handleLogout()" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md font-medium transition-colors border border-red-100 flex items-center">
+                            <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Sair
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Abas de Navegação -->
+                <div class="flex space-x-1 border-b border-gray-200 overflow-x-auto no-scrollbar" id="nav-tabs">
+                    <!-- Preenchido via JS baseado no nível de acesso -->
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+            
+            <!-- VIEW: ESTOQUE (Apenas Admin) -->
+            <div id="view-estoque" class="hidden fade-in space-y-6">
+                <!-- Dashboard Resumo -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4"><i data-lucide="boxes" class="w-6 h-6"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium">Total de Produtos</p><p id="dash-total-items" class="text-2xl font-bold text-gray-900">0</p></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4"><i data-lucide="dollar-sign" class="w-6 h-6"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium">Valor em Estoque</p><p id="dash-total-value" class="text-2xl font-bold text-gray-900">R$ 0,00</p></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+                        <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium">Estoque Baixo</p><p id="dash-low-stock" class="text-2xl font-bold text-gray-900">0</p></div>
+                    </div>
+                </div>
+
+                <!-- Barra de Ações Estoque -->
+                <div class="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <div class="relative flex-1 max-w-md">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="search" class="w-5 h-5 text-gray-400"></i></div>
+                        <input type="text" id="search-estoque" onkeyup="renderEstoque()" placeholder="Buscar produto ou SKU..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <button onclick="openModalProduto()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto
+                    </button>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Produto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Categoria</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Preço</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Estoque</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="estoque-tbody" class="bg-white divide-y divide-gray-200">
+                                <!-- Renderizado via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PDV (Vendas) -->
+            <div id="view-pdv" class="hidden fade-in grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+                
+                <!-- Overlay de Caixa Fechado -->
+                <div id="pdv-overlay-fechado" class="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl border border-gray-200 hidden">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md border border-gray-100">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <i data-lucide="lock" class="w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Caixa Fechado</h2>
+                        <p class="text-gray-500 mb-6">Para iniciar as vendas, você precisa abrir o caixa e informar o troco inicial.</p>
+                        <button onclick="document.getElementById('modal-abrir-caixa').classList.remove('hidden')" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition-colors text-lg">
+                            Abrir Caixa Agora
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Coluna Esquerda: Produtos e Categorias -->
+                <div class="lg:col-span-2 flex flex-col h-[calc(100vh-140px)]">
+                    
+                    <!-- Busca Global no PDV -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4 flex space-x-2 shrink-0">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="search" class="w-5 h-5 text-gray-400"></i></div>
+                            <input type="text" id="pdv-search" onkeyup="handlePDVSearch(event)" placeholder="Buscar produto ou bipar código de barras (Enter)..." class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-500 text-lg">
+                        </div>
+                        <button onclick="startScanner('pdv')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 flex items-center transition-colors" title="Câmera">
+                            <i data-lucide="camera" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+
+                    <!-- Botão Voltar (Categorias) -->
+                    <div id="pdv-back-btn" class="hidden mb-3 shrink-0">
+                        <button onclick="clearPDVCategory()" class="flex items-center text-sm font-bold text-gray-600 hover:text-green-600 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm transition-colors">
+                            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Voltar para Categorias
+                        </button>
+                    </div>
+
+                    <!-- Grade de Conteúdo (Categorias ou Produtos) -->
+                    <div id="pdv-grid" class="flex-1 overflow-y-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                        <!-- Renderizado via JS -->
+                    </div>
+                </div>
+
+                <!-- Coluna Direita: Carrinho -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col h-[calc(100vh-140px)]">
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-3 shrink-0">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center"><i data-lucide="shopping-cart" class="mr-2 text-green-600"></i> Caixa Atual</h2>
+                        <button onclick="iniciarFechamentoCaixa()" class="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded border border-red-100 transition-colors">
+                            Encerrar Turno
+                        </button>
+                    </div>
+                    
+                    <div id="pdv-cart-items" class="flex-1 overflow-y-auto space-y-2 no-scrollbar pr-1">
+                        <!-- Carrinho Vazio -->
+                        <div class="text-center text-gray-400 py-10 flex flex-col items-center">
+                            <i data-lucide="shopping-bag" class="w-12 h-12 mb-3 opacity-20"></i>
+                            <p class="text-sm">Nenhum item adicionado.<br/>Selecione produtos para vender.</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-4 mt-2 shrink-0">
+                        <div class="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <span class="text-gray-600 font-bold uppercase text-sm tracking-wide">Total a Pagar</span>
+                            <span id="pdv-cart-total" class="text-3xl font-extrabold text-green-600">R$ 0,00</span>
+                        </div>
+                        <button id="btn-checkout" onclick="openCheckoutModal()" disabled class="w-full py-4 rounded-xl font-bold text-white bg-gray-400 cursor-not-allowed shadow-md transition-colors text-lg uppercase tracking-wide">
+                            Ir para Pagamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CONTROLE DE CAIXA (Apenas Admin) -->
+            <div id="view-caixa" class="hidden fade-in">
+                <!-- Renderizado via JS -->
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAIS DO SISTEMA -->
+
+    <!-- Modal: PRODUTO -->
+    <div id="modal-produto" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75" onclick="closeModals()"></div>
+            <div class="bg-white rounded-xl shadow-xl z-10 w-full max-w-lg p-6 transform transition-all fade-in">
+                <h3 id="modal-produto-title" class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Novo Produto</h3>
+                <form onsubmit="saveProduct(event)" class="space-y-4">
+                    <input type="hidden" id="prod-id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nome do Produto *</label>
+                        <input type="text" id="prod-name" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Categoria *</label>
+                        <select id="prod-cat" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-green-500 focus:border-green-500">
+                            <option value="Hortifruti">Hortifruti</option>
+                            <option value="Bebidas">Bebidas</option>
+                            <option value="Laticínios">Laticínios</option>
+                            <option value="Limpeza">Limpeza</option>
+                            <option value="Mercearia">Mercearia</option>
+                            <option value="Padaria">Padaria</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Preço (R$) *</label>
+                            <input type="number" id="prod-price" step="0.01" min="0" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Código/SKU</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" id="prod-sku" class="flex-1 w-full px-3 py-2 border border-gray-300 rounded-l-md focus:ring-green-500 focus:border-green-500" placeholder="Opcional">
+                                <button type="button" onclick="startScanner('form')" class="px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-600 rounded-r-md hover:bg-gray-200"><i data-lucide="camera" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Qtd. Estoque *</label>
+                            <input type="number" id="prod-qty" min="0" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Estoque Mínimo *</label>
+                            <input type="number" id="prod-min" min="0" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500" value="5">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium">Cancelar</button>
+                        <button type="submit" id="btn-save-prod" class="px-4 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: CHECKOUT PONTO DE VENDA -->
+    <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75" onclick="closeModals()"></div>
+            <div class="bg-white rounded-2xl shadow-2xl z-10 w-full max-w-md p-6 transform transition-all fade-in">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center"><i data-lucide="receipt" class="mr-2 text-green-600"></i> Pagamento</h3>
+                    <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                
+                <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 text-center shadow-inner">
+                    <p class="text-sm text-gray-500 uppercase font-bold">Total da Venda</p>
+                    <p id="checkout-total" class="text-4xl font-black text-green-600 mt-1">R$ 0,00</p>
+                </div>
+
+                <form onsubmit="processCheckout(event)" class="space-y-4">
+                    <label class="block text-sm font-bold text-gray-700">Forma de Pagamento</label>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <label class="border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-green-50 has-[:checked]:bg-green-50 has-[:checked]:border-green-500 has-[:checked]:ring-1 has-[:checked]:ring-green-500 has-[:checked]:text-green-700">
+                            <input type="radio" name="pay-method" value="dinheiro" checked class="sr-only" onchange="toggleTrocoUI()">
+                            <i data-lucide="banknote" class="w-6 h-6 mb-1 text-gray-600"></i><span class="text-sm font-bold">Dinheiro</span>
+                        </label>
+                        <label class="border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-purple-50 has-[:checked]:bg-purple-50 has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 has-[:checked]:text-purple-700">
+                            <input type="radio" name="pay-method" value="pix" class="sr-only" onchange="toggleTrocoUI()">
+                            <i data-lucide="qr-code" class="w-6 h-6 mb-1 text-gray-600"></i><span class="text-sm font-bold">PIX</span>
+                        </label>
+                        <label class="border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:ring-1 has-[:checked]:ring-blue-500 has-[:checked]:text-blue-700">
+                            <input type="radio" name="pay-method" value="cartao_debito" class="sr-only" onchange="toggleTrocoUI()">
+                            <i data-lucide="credit-card" class="w-6 h-6 mb-1 text-gray-600"></i><span class="text-sm font-bold">Débito</span>
+                        </label>
+                        <label class="border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:ring-1 has-[:checked]:ring-blue-500 has-[:checked]:text-blue-700">
+                            <input type="radio" name="pay-method" value="cartao_credito" class="sr-only" onchange="toggleTrocoUI()">
+                            <i data-lucide="credit-card" class="w-6 h-6 mb-1 text-gray-600"></i><span class="text-sm font-bold">Crédito</span>
+                        </label>
+                    </div>
+
+                    <div id="checkout-troco-area" class="bg-green-50 p-4 rounded-xl border border-green-200 fade-in">
+                        <label class="block text-sm font-bold text-green-900 mb-2">Valor Recebido (R$)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="text-gray-500 font-bold">R$</span></div>
+                            <input type="number" id="checkout-pago" step="0.01" min="0" class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-xl font-bold focus:ring-green-500 focus:border-green-500" oninput="calcTroco()">
+                        </div>
+                        <div id="checkout-troco-result" class="mt-3 flex justify-between items-center bg-white p-3 rounded-lg border border-green-200 hidden">
+                            <span class="text-sm font-bold text-gray-700">Troco a devolver:</span>
+                            <span id="checkout-troco-valor" class="text-xl font-extrabold text-green-600">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-process-pay" class="w-full py-4 bg-green-600 text-white font-black text-lg rounded-xl shadow-lg hover:bg-green-700 mt-4 transition-colors">
+                        Confirmar Venda
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: ABRIR CAIXA -->
+    <div id="modal-abrir-caixa" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+            <div class="bg-white rounded-xl shadow-xl z-10 w-full max-w-md p-6 transform transition-all fade-in text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                    <i data-lucide="unlock" class="h-8 w-8 text-green-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Abertura de Caixa</h3>
+                <p class="text-sm text-gray-500 mb-6">Informe o valor inicial em dinheiro (fundo de troco) presente na gaveta para iniciar seu turno.</p>
+                <form onsubmit="processAbrirCaixa(event)">
+                    <div class="relative mb-6">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="text-gray-500 font-bold">R$</span></div>
+                        <input type="number" id="caixa-saldo-inicial" step="0.01" min="0" required class="block w-full pl-12 pr-4 py-4 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 font-bold text-2xl text-center" placeholder="0.00">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md">Iniciar Vendas</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: FECHAR CAIXA (Conferência Cega) -->
+    <div id="modal-fechar-caixa" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75" onclick="closeModals()"></div>
+            <div class="bg-white rounded-xl shadow-xl z-10 w-full max-w-md p-6 transform transition-all fade-in">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i data-lucide="stop-circle" class="mr-2 text-red-600"></i> Fechamento de Caixa</h3>
+                <form onsubmit="processFecharCaixa(event)">
+                    <div id="fechamento-resumo" class="space-y-3 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <!-- Preenchido via JS (Valores de Venda do Turno) -->
+                    </div>
+                    <div class="mb-6 border-t border-gray-200 pt-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Dinheiro em Gaveta (Contagem Física) *</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="text-gray-500 font-bold">R$</span></div>
+                            <input type="number" id="fechamento-dinheiro-informado" step="0.01" min="0" required class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 font-bold text-lg" placeholder="0.00">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Conte as notas e moedas na gaveta e informe o valor total acima para calcularmos o balanço.</p>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md">Confirmar Fechamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: RELATÓRIO DE CAIXA (Impressão) -->
+    <div id="modal-relatorio-caixa" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 print-hide" onclick="fecharRelatorioCaixa()"></div>
+            <div class="bg-white rounded-xl shadow-xl z-10 w-full max-w-lg p-8 transform transition-all fade-in print-area relative">
+                <div class="flex justify-between items-start mb-4 print-hide">
+                    <h3 class="text-xl font-bold text-gray-900"><i data-lucide="file-text" class="inline mr-2 text-blue-600 w-5 h-5"></i> Detalhes do Caixa</h3>
+                    <button type="button" onclick="fecharRelatorioCaixa()" class="text-gray-400 hover:text-gray-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                
+                <div id="relatorio-conteudo" class="text-sm">
+                    <!-- Preenchido via JS com detalhes de Sobra/Falta -->
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-8 pt-4 border-t print-hide">
+                    <button type="button" onclick="fecharRelatorioCaixa()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Fechar</button>
+                    <button type="button" onclick="imprimirRelatorioCaixa()" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">
+                        <i data-lucide="printer" class="w-4 h-4"></i><span>Imprimir</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: SCANNER CAMERA -->
+    <div id="modal-scanner" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-90" onclick="stopScanner()"></div>
+            <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-lg p-4 transform transition-all fade-in">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-lg font-medium text-gray-900">Ler Código de Barras</h3>
+                    <button onclick="stopScanner()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div id="reader-container" class="w-full bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-[300px]">
+                    <div id="reader" class="w-full"></div>
+                </div>
+                <p class="text-sm text-gray-500 text-center mt-4">Aponte a câmera para o código de barras do produto.</p>
+            </div>
+        </div>
     </div>
 
     <script type="module">
+        // IMPORTANTE: Insira abaixo as chaves do SEU projeto Firebase que copiamos no passo anterior.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // COLOQUE SUAS CHAVES AQUI
         const firebaseConfig = {
             apiKey: "AIzaSyDM6eLPCIO6NAwv6jRRmSh3YppohWcFILM",
             authDomain: "sistema-mini-mercado.firebaseapp.com",
@@ -38,56 +450,701 @@
             appId: "1:956443578773:web:202d968d3787ed7bdba69c",
             measurementId: "G-RMY289M8X1"
         };
-        const ADMIN_EMAILS = ["seuemail@gmail.com"]; // SUBSTITUA PELO SEU EMAIL
+        
+        // COLOQUE O SEU EMAIL AQUI (O Email que será o "Chefe/Admin")
+        const ADMIN_EMAILS = ["admin@admin.com.br"]; // <-- Substitua pelo seu e-mail real!
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let products = [];
-        let currentTab = 'pdv';
+        // ESTADO GLOBAL DA APLICAÇÃO (Ligado ao window para acesso no HTML inline)
+        window.db = db;
+        window.user = null;
+        window.isAdmin = false;
+        window.activeTab = 'pdv';
+        
+        window.products = [];
+        window.sales = [];
+        window.sessoesCaixa = [];
+        
+        window.cart = [];
+        window.pdvCategorySelected = null;
+        window.sessaoCaixa = null; // Guarda os dados do caixa aberto atual
 
-        onAuthStateChanged(auth, u => {
-            if(u) {
-                document.getElementById('app').classList.remove('hidden');
-                if(ADMIN_EMAILS.includes(u.email)) {
-                    document.getElementById('estoque-tab').classList.remove('hidden');
-                    document.getElementById('caixa-tab').classList.remove('hidden');
-                }
-                changeTab('pdv');
+        window.formatMoney = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+        window.formatDateTime = (isoString) => isoString ? new Date(isoString).toLocaleString('pt-BR') : '---';
+
+        // UTILITÁRIO: Toast Alert Customizado (Substitui o alert() padrão)
+        window.showAlert = (msg, type = 'error') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'success' ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-100 border-red-500 text-red-800';
+            const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+            
+            toast.className = `flex items-center p-4 border-l-4 rounded shadow-md fade-in ${colors} transition-opacity duration-500`;
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 mr-3"></i><p class="font-medium text-sm">${msg}</p>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3500);
+        };
+
+        // AUTENTICAÇÃO
+        onAuthStateChanged(auth, (u) => {
+            if (u) {
+                window.user = u;
+                window.isAdmin = ADMIN_EMAILS.includes(u.email);
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                document.getElementById('user-info').innerText = u.email;
+                
+                buildNavTabs();
+                carregarDados();
+                window.switchTab(window.isAdmin ? 'estoque' : 'pdv');
+            } else {
+                window.user = null;
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('app-content').classList.add('hidden');
             }
         });
 
-        window.changeTab = (t) => {
-            currentTab = t;
-            const main = document.getElementById('main-content');
-            if(t === 'pdv') renderPDV(main);
-            else if(t === 'estoque') main.innerHTML = '<h2>Estoque (Painel Admin)</h2>';
-            else if(t === 'caixa') main.innerHTML = '<h2>Caixa (Painel Admin)</h2>';
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const em = document.getElementById('login-email').value;
+            const pw = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> Conectando...';
+            btn.disabled = true;
+            try {
+                await signInWithEmailAndPassword(auth, em, pw);
+            } catch (error) {
+                let errStr = "Erro ao fazer login. Verifique as credenciais.";
+                if(error.code === 'auth/invalid-credential') errStr = "E-mail ou senha incorretos!";
+                window.showAlert(errStr);
+                btn.innerHTML = 'Entrar no Sistema';
+                btn.disabled = false;
+            }
         };
 
-        window.renderPDV = (el) => {
-            el.innerHTML = `
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2">
-                        <div id="pdv-ui" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow">
-                        <h2 class="font-bold text-lg mb-4">Carrinho</h2>
-                        <div id="cart-list" class="space-y-2 mb-4"></div>
-                        <button onclick="finalizarVenda()" class="w-full bg-green-600 text-white p-3 rounded font-bold">Pagar</button>
-                    </div>
-                </div>
-            `;
-            // Categoria mock
-            const cats = ['Hortifruti', 'Bebidas', 'Padaria'];
-            const ui = document.getElementById('pdv-ui');
-            cats.forEach(c => {
-                ui.innerHTML += `<div class="p-6 bg-white border rounded-lg cursor-pointer hover:shadow-lg transition-all">${c}</div>`;
+        window.handleLogout = () => signOut(auth);
+
+        const buildNavTabs = () => {
+            const cont = document.getElementById('nav-tabs');
+            let tabs = `<button onclick="switchTab('pdv')" id="tab-pdv" class="pb-3 px-4 flex items-center font-bold text-sm transition-colors border-b-2 whitespace-nowrap"><i data-lucide="store" class="w-5 h-5 mr-2"></i>PDV (Vendas)</button>`;
+            
+            if (window.isAdmin) {
+                tabs = `<button onclick="switchTab('estoque')" id="tab-estoque" class="pb-3 px-4 flex items-center font-bold text-sm transition-colors border-b-2 whitespace-nowrap"><i data-lucide="boxes" class="w-5 h-5 mr-2"></i>Estoque</button>` + tabs;
+                tabs += `<button onclick="switchTab('caixa')" id="tab-caixa" class="pb-3 px-4 flex items-center font-bold text-sm transition-colors border-b-2 whitespace-nowrap"><i data-lucide="history" class="w-5 h-5 mr-2"></i>Controle Caixa</button>`;
+            }
+            cont.innerHTML = tabs;
+            lucide.createIcons();
+        };
+
+        window.switchTab = (tab) => {
+            window.activeTab = tab;
+            ['estoque', 'pdv', 'caixa'].forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('text-green-600', 'border-green-600', 'text-gray-500', 'border-transparent');
+                    btn.classList.add(tab === t ? 'text-green-600' : 'text-gray-500');
+                    btn.classList.add(tab === t ? 'border-green-600' : 'border-transparent');
+                }
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            
+            if (tab === 'estoque') renderEstoque();
+            if (tab === 'pdv') { updateCaixaUI(); renderPDV(); renderCart(); }
+            if (tab === 'caixa') renderCaixa();
+        };
+
+        // CARGA DE DADOS REALTIME
+        let unsubProd, unsubSales, unsubCaixas;
+        const carregarDados = () => {
+            if(unsubProd) unsubProd(); if(unsubSales) unsubSales(); if(unsubCaixas) unsubCaixas();
+            
+            unsubProd = onSnapshot(collection(db, 'products'), (snap) => {
+                window.products = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
+                if(window.activeTab === 'estoque') renderEstoque();
+                if(window.activeTab === 'pdv') renderPDV();
+            });
+
+            unsubSales = onSnapshot(collection(db, 'sales'), (snap) => {
+                window.sales = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                if(window.activeTab === 'caixa') renderCaixa();
+            });
+
+            // Monitora sessões de caixa globalmente
+            unsubCaixas = onSnapshot(collection(db, 'caixa_sessoes'), (snap) => {
+                window.sessoesCaixa = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => new Date(b.abertura) - new Date(a.abertura));
+                
+                // Atualiza a sessão de caixa do usuário logado (última sessão aberta dele)
+                const minhaSessaoAberta = window.sessoesCaixa.find(s => s.userEmail === window.user.email && !s.fechamento);
+                window.sessaoCaixa = minhaSessaoAberta || null;
+                
+                if(window.activeTab === 'pdv') updateCaixaUI();
+                if(window.activeTab === 'caixa') renderCaixa();
             });
         };
 
-        window.logout = () => signOut(auth);
+        // CONTROLE GERAL DE MODAIS
+        window.closeModals = () => {
+            document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
+            window.stopScanner();
+        };
+
+        // FLUXO DE CAIXA DO OPERADOR (PDV)
+        window.updateCaixaUI = () => {
+            const overlay = document.getElementById('pdv-overlay-fechado');
+            if(window.sessaoCaixa) {
+                overlay.classList.add('hidden');
+            } else {
+                overlay.classList.remove('hidden');
+                window.cart = []; // Limpa carrinho ao fechar
+                renderCart();
+            }
+        };
+
+        window.processAbrirCaixa = async (e) => {
+            e.preventDefault();
+            const initial = parseFloat(document.getElementById('caixa-saldo-inicial').value) || 0;
+            const btn = document.querySelector('#modal-abrir-caixa button[type="submit"]');
+            btn.disabled = true; btn.innerText = 'Abrindo...';
+            
+            try {
+                await addDoc(collection(db, 'caixa_sessoes'), {
+                    userEmail: window.user.email,
+                    abertura: new Date().toISOString(),
+                    saldoInicial: initial,
+                    fechamento: null
+                });
+                closeModals();
+                window.showAlert("Caixa aberto com sucesso!", "success");
+            } catch(err) {
+                window.showAlert("Erro ao abrir caixa.");
+            } finally {
+                btn.disabled = false; btn.innerText = 'Iniciar Vendas';
+            }
+        };
+
+        // Passo 1: Inicia fechamento (Calcula vendas e pede valor físico)
+        window.iniciarFechamentoCaixa = () => {
+            if(!window.sessaoCaixa) return;
+            if(window.cart.length > 0) {
+                window.showAlert("Remova os itens do carrinho antes de fechar o caixa!");
+                return;
+            }
+
+            // Calcula total de vendas do turno atual do operador
+            const inicioTurno = new Date(window.sessaoCaixa.abertura);
+            const vendasDoTurno = window.sales.filter(s => 
+                s.operador === window.user.email && 
+                new Date(s.timestamp) >= inicioTurno
+            );
+
+            let totalDinheiro = 0, totalCartao = 0, totalPix = 0;
+            vendasDoTurno.forEach(v => {
+                if(v.paymentMethod === 'dinheiro') totalDinheiro += v.total;
+                else if(v.paymentMethod === 'pix') totalPix += v.total;
+                else totalCartao += v.total;
+            });
+
+            const saldoInicial = window.sessaoCaixa.saldoInicial;
+            const dinheiroEmGavetaEsperado = saldoInicial + totalDinheiro;
+
+            // Mostra apenas o básico pro operador não ver o esperado antes de contar (opcional, mas aqui mostramos resumo para clareza)
+            document.getElementById('fechamento-resumo').innerHTML = `
+                <div class="flex justify-between text-sm"><span class="text-gray-600">Fundo Inicial de Troco:</span><span class="font-medium">${formatMoney(saldoInicial)}</span></div>
+                <div class="flex justify-between text-sm"><span class="text-gray-600">Vendas (Dinheiro):</span><span class="font-medium text-green-600">+ ${formatMoney(totalDinheiro)}</span></div>
+                <div class="flex justify-between text-xs mt-2 border-t pt-2"><span class="text-gray-500">Cartões: ${formatMoney(totalCartao)}</span><span class="text-gray-500">PIX: ${formatMoney(totalPix)}</span></div>
+            `;
+            
+            // Salva totais na memória para processar no Passo 2
+            window.sessaoFechamentoData = { totalDinheiro, totalCartao, totalPix, dinheiroEmGavetaEsperado };
+            
+            const inputInfo = document.getElementById('fechamento-dinheiro-informado');
+            inputInfo.value = '';
+            
+            document.getElementById('modal-fechar-caixa').classList.remove('hidden');
+        };
+
+        // Passo 2: Operador informa dinheiro e sistema grava resultado (Falta/Sobra)
+        window.processFecharCaixa = async (e) => {
+            e.preventDefault();
+            if(!window.sessaoCaixa) return;
+            
+            const btn = document.querySelector('#modal-fechar-caixa button[type="submit"]');
+            btn.disabled = true; btn.innerText = 'Fechando...';
+            
+            const dinheiroInformado = parseFloat(document.getElementById('fechamento-dinheiro-informado').value) || 0;
+            const diferenca = dinheiroInformado - window.sessaoFechamentoData.dinheiroEmGavetaEsperado;
+            
+            // Incrementa os dados salvos temporariamente
+            window.sessaoFechamentoData.dinheiroInformado = dinheiroInformado;
+            window.sessaoFechamentoData.diferenca = diferenca;
+            
+            try {
+                await updateDoc(doc(db, 'caixa_sessoes', window.sessaoCaixa.id), {
+                    fechamento: new Date().toISOString(),
+                    resumo: window.sessaoFechamentoData
+                });
+                closeModals();
+                window.showAlert("Caixa encerrado com sucesso!", "success");
+            } catch(err) {
+                window.showAlert("Erro ao encerrar caixa.");
+            } finally {
+                btn.disabled = false; btn.innerText = 'Confirmar Fechamento';
+            }
+        };
+
+        // VIEW: ADMIN - CONTROLE DE CAIXA
+        const renderCaixa = () => {
+            if(!window.isAdmin) return;
+            const view = document.getElementById('view-caixa');
+            
+            const tbodyCaixas = window.sessoesCaixa.length === 0 ? `<tr><td colspan="6" class="text-center p-6 text-gray-500">Nenhum turno registrado.</td></tr>` :
+                window.sessoesCaixa.map(s => {
+                    const isClosed = !!s.fechamento;
+                    const status = isClosed ? `<span class="px-2 py-0.5 text-[10px] uppercase font-bold bg-gray-100 text-gray-600 rounded">Fechado</span>` : `<span class="px-2 py-0.5 text-[10px] uppercase font-bold bg-green-100 text-green-700 border border-green-200 rounded">Aberto</span>`;
+                    
+                    const res = s.resumo || {};
+                    const dif = res.diferenca || 0;
+                    
+                    let difBadge = '';
+                    if (isClosed) {
+                        if (dif === 0) difBadge = `<span class="text-xs font-bold text-green-600 block mt-0.5">Exato (R$ 0,00)</span>`;
+                        else if (dif > 0) difBadge = `<span class="text-xs font-bold text-blue-600 block mt-0.5">Sobra: +${formatMoney(dif)}</span>`;
+                        else difBadge = `<span class="text-xs font-bold text-red-600 block mt-0.5">Falta: ${formatMoney(dif)}</span>`;
+                    }
+
+                    return `
+                    <tr class="hover:bg-gray-50 text-sm transition-colors">
+                        <td class="px-4 py-3"><div class="font-medium text-gray-900">${formatDateTime(s.abertura)}</div><div class="text-xs text-gray-500">${isClosed ? formatDateTime(s.fechamento) : 'Em andamento'}</div></td>
+                        <td class="px-4 py-3"><div class="font-bold text-gray-800">${s.userEmail.split('@')[0]}</div>${status}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">${formatMoney(s.saldoInicial)}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">${isClosed ? formatMoney((res.totalDinheiro||0)+(res.totalCartao||0)+(res.totalPix||0)) : '---'}</td>
+                        <td class="px-4 py-3 text-right bg-gray-50/50"><div class="font-bold text-gray-900">${isClosed ? formatMoney(res.dinheiroInformado||0) : '---'}</div>${difBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openRelatorioCaixa('${s.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded transition-colors" title="Ver / Imprimir Resumo">
+                                <i data-lucide="printer" class="w-5 h-5 mx-auto"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+            view.innerHTML = `
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900 flex items-center"><i data-lucide="history" class="mr-2"></i> Histórico de Turnos (Caixas)</h2>
+                </div>
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Abertura / Fechamento</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Operador</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Fundo(R$)</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Vendas(R$)</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Dinheiro Físico / Saldo</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">${tbodyCaixas}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            lucide.createIcons();
+        };
+
+        window.openRelatorioCaixa = (id) => {
+            const s = window.sessoesCaixa.find(x => x.id === id);
+            if(!s) return;
+            const res = s.resumo || {};
+            const isClosed = !!s.fechamento;
+            
+            const relHtml = `
+                <div class="text-center mb-6 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 uppercase">Relatório de Turno</h2>
+                    <p class="text-gray-500">QuitandaManager</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div><span class="text-gray-500 uppercase text-xs font-bold">Operador</span><br/><span class="font-bold text-gray-900 text-base">${s.userEmail}</span></div>
+                    <div class="text-right"><span class="text-gray-500 uppercase text-xs font-bold">Status</span><br/><span class="font-bold text-gray-900 text-base">${isClosed ? 'Fechado' : 'Aberto'}</span></div>
+                    <div><span class="text-gray-500 uppercase text-xs font-bold">Abertura</span><br/><span class="font-medium text-gray-800">${formatDateTime(s.abertura)}</span></div>
+                    <div class="text-right"><span class="text-gray-500 uppercase text-xs font-bold">Fechamento</span><br/><span class="font-medium text-gray-800">${isClosed ? formatDateTime(s.fechamento) : '---'}</span></div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-5 mb-6">
+                    <h4 class="font-bold text-gray-900 uppercase mb-3 border-b border-gray-100 pb-2">1. Resumo do Sistema</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-600">Saldo Inicial (Troco):</span> <span>${formatMoney(s.saldoInicial)}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Vendas - Dinheiro:</span> <span class="font-medium text-green-700">+ ${formatMoney(res.totalDinheiro || 0)}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Vendas - Cartão (D/C):</span> <span>${formatMoney(res.totalCartao || 0)}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Vendas - PIX:</span> <span>${formatMoney(res.totalPix || 0)}</span></div>
+                        <div class="flex justify-between pt-2 border-t border-gray-100 font-bold bg-gray-50 p-2 rounded mt-2">
+                            <span>Total Esperado em Gaveta (Dinheiro):</span> 
+                            <span class="text-lg">${formatMoney((s.saldoInicial) + (res.totalDinheiro || 0))}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${isClosed ? `
+                <div class="border ${res.diferenca === 0 ? 'border-green-300 bg-green-50' : (res.diferenca > 0 ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50')} rounded-lg p-5">
+                    <h4 class="font-bold text-gray-900 uppercase mb-3 border-b border-gray-300 pb-2">2. Conferência Física</h4>
+                    <div class="flex justify-between text-sm"><span class="text-gray-700">Dinheiro Informado pelo Operador:</span> <span class="font-bold text-lg">${formatMoney(res.dinheiroInformado || 0)}</span></div>
+                    <div class="flex justify-between mt-3 pt-3 border-t border-gray-300 font-black text-xl ${res.diferenca < 0 ? 'text-red-700' : (res.diferenca > 0 ? 'text-blue-700' : 'text-green-700')}">
+                        <span>RESULTADO:</span> 
+                        <span>${res.diferenca === 0 ? 'Exato (R$ 0,00)' : (res.diferenca > 0 ? 'SOBRA DE ' + formatMoney(res.diferenca) : 'FALTA DE ' + formatMoney(Math.abs(res.diferenca)))}</span>
+                    </div>
+                </div>` : '<div class="text-center p-4 bg-gray-50 rounded-lg text-gray-500 italic">Feche o caixa para ver a conferência de valores.</div>'}
+                <div class="text-center text-xs text-gray-400 mt-8 pt-4 border-t">Impresso em ${new Date().toLocaleString('pt-BR')}</div>
+            `;
+            
+            document.getElementById('relatorio-conteudo').innerHTML = relHtml;
+            document.getElementById('modal-relatorio-caixa').classList.remove('hidden');
+        };
+        
+        window.fecharRelatorioCaixa = () => document.getElementById('modal-relatorio-caixa').classList.add('hidden');
+        window.imprimirRelatorioCaixa = () => window.print();
+
+        // VIEW: PDV / CATEGORIAS
+        const catColors = {
+            'Hortifruti': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200',
+            'Bebidas': 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200',
+            'Laticínios': 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200',
+            'Limpeza': 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200',
+            'Mercearia': 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200',
+            'Padaria': 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200',
+            'Outros': 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200'
+        };
+
+        const renderPDV = () => {
+            const grid = document.getElementById('pdv-grid');
+            const btnBack = document.getElementById('pdv-back-btn');
+            
+            if(!window.pdvCategorySelected && !document.getElementById('pdv-search').value) {
+                // Modo Categorias
+                btnBack.classList.add('hidden');
+                const cats = ['Hortifruti', 'Bebidas', 'Laticínios', 'Limpeza', 'Mercearia', 'Padaria', 'Outros'];
+                grid.className = "flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-3 no-scrollbar";
+                grid.innerHTML = cats.map(c => `
+                    <div onclick="selectPDVCategory('${c}')" class="flex flex-col items-center justify-center p-6 rounded-xl border ${catColors[c] || catColors['Outros']} cursor-pointer transition-all shadow-sm transform hover:scale-[1.02]">
+                        <span class="font-bold text-lg text-center leading-tight">${c}</span>
+                        <span class="text-xs opacity-70 mt-1">${window.products.filter(p=>p.category===c).length} itens</span>
+                    </div>
+                `).join('');
+            } else {
+                // Modo Produtos
+                if(window.pdvCategorySelected) btnBack.classList.remove('hidden');
+                else btnBack.classList.add('hidden'); // Se foi busca global
+
+                grid.className = "flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 no-scrollbar";
+                
+                let list = window.products;
+                if(window.pdvCategorySelected) list = list.filter(p => p.category === window.pdvCategorySelected);
+                
+                const search = document.getElementById('pdv-search').value.toLowerCase();
+                if(search) list = list.filter(p => p.name.toLowerCase().includes(search) || (p.sku && p.sku.toLowerCase().includes(search)));
+
+                grid.innerHTML = list.length ? list.map(p => `
+                    <div onclick="addToCart('${p.id}')" class="border rounded-xl p-3 cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-md flex flex-col justify-between ${p.quantity > 0 ? 'bg-white border-gray-200 hover:border-green-400' : 'bg-gray-50 border-gray-200 opacity-60'}">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">${p.category}</div>
+                            <div class="text-sm font-bold text-gray-900 leading-tight mb-2 line-clamp-2" title="${p.name}">${p.name}</div>
+                        </div>
+                        <div class="flex justify-between items-end mt-2 pt-2 border-t border-gray-100">
+                            <span class="text-green-600 font-extrabold text-base">${formatMoney(p.price)}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${p.quantity > 0 ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'}">Est. ${p.quantity}</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="col-span-full text-center text-gray-500 py-10 font-medium">Nenhum produto encontrado.</div>';
+            }
+        };
+
+        window.selectPDVCategory = (cat) => { window.pdvCategorySelected = cat; renderPDV(); };
+        window.clearPDVCategory = () => { window.pdvCategorySelected = null; renderPDV(); };
+
+        window.handlePDVSearch = (e) => {
+            if (e.key === 'Enter' && e.target.value) {
+                const term = e.target.value.toLowerCase();
+                const matched = window.products.find(p => p.sku === term || p.name.toLowerCase() === term);
+                if (matched) { addToCart(matched.id); e.target.value = ''; }
+                else window.showAlert("Produto não encontrado");
+            }
+            window.pdvCategorySelected = null; // Busca global ignora categoria
+            renderPDV();
+        };
+
+        // CARRINHO
+        window.addToCart = (pId) => {
+            if(!window.sessaoCaixa) { window.showAlert("Abra o caixa primeiro!"); return; }
+            const p = window.products.find(x => x.id === pId);
+            if(!p) return;
+            const item = window.cart.find(x => x.product.id === pId);
+            if(item) {
+                if(item.qty >= p.quantity) { window.showAlert("Estoque insuficiente"); return; }
+                item.qty++;
+            } else {
+                if(p.quantity <= 0) { window.showAlert("Produto esgotado"); return; }
+                window.cart.push({ product: p, qty: 1 });
+            }
+            renderCart();
+        };
+
+        window.updateCartQty = (pId, delta) => {
+            const item = window.cart.find(x => x.product.id === pId);
+            if(!item) return;
+            const newVal = item.qty + delta;
+            if(newVal > item.product.quantity) { window.showAlert("Estoque insuficiente"); return; }
+            if(newVal <= 0) window.cart = window.cart.filter(x => x.product.id !== pId);
+            else item.qty = newVal;
+            renderCart();
+        };
+
+        // Função nova: Permite digitar direto no input do carrinho
+        window.setCartQty = (pId, inputVal) => {
+            const item = window.cart.find(x => x.product.id === pId);
+            if(!item) return;
+            let val = parseInt(inputVal);
+            if(isNaN(val) || val <= 0) {
+                window.cart = window.cart.filter(x => x.product.id !== pId);
+            } else if(val > item.product.quantity) {
+                window.showAlert(`Apenas ${item.product.quantity} un. disponíveis`);
+                item.qty = item.product.quantity;
+            } else {
+                item.qty = val;
+            }
+            renderCart();
+        };
+
+        const renderCart = () => {
+            const cont = document.getElementById('pdv-cart-items');
+            const btn = document.getElementById('btn-checkout');
+            const totEl = document.getElementById('pdv-cart-total');
+            
+            const total = window.cart.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
+            totEl.innerText = formatMoney(total);
+
+            if (window.cart.length === 0) {
+                cont.innerHTML = `<div class="text-center text-gray-400 py-10 flex flex-col items-center"><i data-lucide="shopping-bag" class="w-12 h-12 mb-3 opacity-20"></i><p class="text-sm">Nenhum item adicionado.</p></div>`;
+                btn.disabled = true; btn.classList.add('bg-gray-400', 'cursor-not-allowed'); btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            } else {
+                btn.disabled = false; btn.classList.remove('bg-gray-400', 'cursor-not-allowed'); btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                cont.innerHTML = window.cart.map(item => `
+                    <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm mb-2 hover:border-gray-300 transition-colors">
+                        <div class="flex-1 overflow-hidden pr-2">
+                            <div class="font-bold text-sm text-gray-900 truncate leading-tight">${item.product.name}</div>
+                            <div class="text-xs text-green-600 font-bold">${formatMoney(item.product.price)}</div>
+                        </div>
+                        <div class="flex items-center bg-gray-50 border border-gray-200 rounded-md p-0.5">
+                            <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 flex items-center justify-center rounded text-gray-600 hover:bg-gray-200 hover:text-red-600 transition-colors"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                            <input type="number" onchange="setCartQty('${item.product.id}', this.value)" value="${item.qty}" min="1" class="w-10 h-7 text-center text-sm font-bold border-none bg-transparent hide-arrows focus:ring-0 p-0 text-gray-900">
+                            <button onclick="updateCartQty('${item.product.id}', 1)" class="w-7 h-7 flex items-center justify-center rounded text-gray-600 hover:bg-gray-200 hover:text-green-600 transition-colors"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>`).join('');
+            }
+            lucide.createIcons();
+        };
+
+        // CHECKOUT
+        window.openCheckoutModal = () => {
+            if(window.cart.length === 0) return;
+            const total = window.cart.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
+            document.getElementById('checkout-total').innerText = formatMoney(total);
+            document.querySelector('input[name="pay-method"][value="dinheiro"]').checked = true;
+            document.getElementById('checkout-pago').value = '';
+            toggleTrocoUI();
+            document.getElementById('modal-checkout').classList.remove('hidden');
+        };
+
+        window.toggleTrocoUI = () => {
+            const isDinheiro = document.querySelector('input[name="pay-method"]:checked').value === 'dinheiro';
+            const area = document.getElementById('checkout-troco-area');
+            const input = document.getElementById('checkout-pago');
+            if (isDinheiro) { area.classList.remove('hidden'); input.required = true; calcTroco(); } 
+            else { area.classList.add('hidden'); input.required = false; }
+        };
+
+        window.calcTroco = () => {
+            const total = window.cart.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
+            const pago = parseFloat(document.getElementById('checkout-pago').value) || 0;
+            const resArea = document.getElementById('checkout-troco-result');
+            const valEl = document.getElementById('checkout-troco-valor');
+            if (pago >= total) {
+                resArea.classList.remove('hidden');
+                valEl.innerText = formatMoney(pago - total);
+            } else {
+                resArea.classList.add('hidden');
+            }
+        };
+
+        window.processCheckout = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-process-pay');
+            const method = document.querySelector('input[name="pay-method"]:checked').value;
+            const total = window.cart.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
+            let pago = total;
+
+            if (method === 'dinheiro') {
+                pago = parseFloat(document.getElementById('checkout-pago').value) || 0;
+                if (pago < total) { window.showAlert("Valor recebido é menor que o total."); return; }
+            }
+
+            btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2 inline"></i> Processando...';
+            
+            try {
+                // Registrar Venda (Agora gravamos também quem operou o caixa)
+                await addDoc(collection(db, 'sales'), {
+                    items: window.cart.map(i => ({ id: i.product.id, name: i.product.name, qty: i.qty, price: i.product.price })),
+                    total: total,
+                    paymentMethod: method,
+                    amountPaid: pago,
+                    change: method === 'dinheiro' ? pago - total : 0,
+                    timestamp: new Date().toISOString(),
+                    operador: window.user.email
+                });
+
+                // Abater Estoque
+                for (const item of window.cart) {
+                    await updateDoc(doc(db, 'products', item.product.id), { quantity: item.product.quantity - item.qty });
+                }
+
+                if (method === 'dinheiro' && (pago - total) > 0) window.showAlert(`Venda concluída! Troco: ${formatMoney(pago - total)}`, 'success');
+                else window.showAlert("Venda concluída com sucesso!", 'success');
+
+                window.cart = [];
+                closeModals();
+                renderCart();
+            } catch (err) {
+                window.showAlert("Erro ao processar venda.");
+            } finally {
+                btn.disabled = false; btn.innerText = 'Confirmar Venda';
+            }
+        };
+
+        // CRUD ESTOQUE
+        const renderEstoque = () => {
+            if(!window.isAdmin) return;
+            const tbody = document.getElementById('estoque-tbody');
+            const search = document.getElementById('search-estoque')?.value.toLowerCase() || '';
+            
+            let list = window.products;
+            if(search) list = list.filter(p => p.name.toLowerCase().includes(search) || (p.sku && p.sku.toLowerCase().includes(search)));
+
+            // Update Dash
+            document.getElementById('dash-total-items').innerText = window.products.length;
+            document.getElementById('dash-total-value').innerText = formatMoney(window.products.reduce((s, p) => s + (p.price * p.quantity), 0));
+            document.getElementById('dash-low-stock').innerText = window.products.filter(p => p.quantity <= p.minQuantity).length;
+
+            tbody.innerHTML = list.length ? list.map(p => `
+                <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                    <td class="px-6 py-3">
+                        <div class="font-bold text-gray-900">${p.name}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">SKU: ${p.sku || '---'}</div>
+                    </td>
+                    <td class="px-6 py-3"><span class="px-2 py-0.5 text-xs font-bold rounded-md bg-gray-100 text-gray-600 border border-gray-200">${p.category}</span></td>
+                    <td class="px-6 py-3 text-right font-medium text-gray-900">${formatMoney(p.price)}</td>
+                    <td class="px-6 py-3 text-right">
+                        <span class="text-sm font-bold text-gray-900">${p.quantity}</span> <span class="text-xs text-gray-500">un</span>
+                    </td>
+                    <td class="px-6 py-3 text-center">
+                        ${p.quantity <= 0 ? `<span class="px-2 py-0.5 text-xs font-bold rounded-md bg-red-100 text-red-700 border border-red-200">Esgotado</span>` : 
+                          p.quantity <= p.minQuantity ? `<span class="px-2 py-0.5 text-xs font-bold rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200">Baixo</span>` : 
+                          `<span class="px-2 py-0.5 text-xs font-bold rounded-md bg-green-100 text-green-700 border border-green-200">Normal</span>`}
+                    </td>
+                    <td class="px-6 py-3 text-right space-x-2">
+                        <button onclick="openModalProduto('${p.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded transition-colors"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="text-red-600 hover:text-red-800 hover:bg-red-50 p-1.5 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="6" class="text-center py-8 text-gray-500 font-medium">Nenhum produto encontrado.</td></tr>`;
+            lucide.createIcons();
+        };
+
+        window.openModalProduto = (id = null) => {
+            const form = document.querySelector('#modal-produto form');
+            form.reset();
+            document.getElementById('prod-id').value = id || '';
+            document.getElementById('modal-produto-title').innerText = id ? 'Editar Produto' : 'Novo Produto';
+            
+            if(id) {
+                const p = window.products.find(x => x.id === id);
+                if(p) {
+                    document.getElementById('prod-name').value = p.name;
+                    document.getElementById('prod-cat').value = p.category;
+                    document.getElementById('prod-price').value = p.price;
+                    document.getElementById('prod-sku').value = p.sku || '';
+                    document.getElementById('prod-qty').value = p.quantity;
+                    document.getElementById('prod-min').value = p.minQuantity;
+                }
+            }
+            document.getElementById('modal-produto').classList.remove('hidden');
+        };
+
+        window.saveProduct = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const data = {
+                name: document.getElementById('prod-name').value,
+                category: document.getElementById('prod-cat').value,
+                price: parseFloat(document.getElementById('prod-price').value) || 0,
+                sku: document.getElementById('prod-sku').value,
+                quantity: parseInt(document.getElementById('prod-qty').value) || 0,
+                minQuantity: parseInt(document.getElementById('prod-min').value) || 5,
+            };
+            
+            const btn = document.getElementById('btn-save-prod');
+            btn.disabled = true; btn.innerText = 'Salvando...';
+
+            try {
+                if(id) await updateDoc(doc(db, 'products', id), data);
+                else await addDoc(collection(db, 'products'), data);
+                closeModals();
+                window.showAlert("Produto salvo!", 'success');
+            } catch(err) { window.showAlert("Erro ao salvar produto."); }
+            finally { btn.disabled = false; btn.innerText = 'Salvar'; }
+        };
+
+        window.deleteProduct = async (id) => {
+            try {
+                await deleteDoc(doc(db, 'products', id));
+                window.showAlert("Produto excluído.", 'success');
+            } catch(err) { window.showAlert("Erro ao excluir."); }
+        };
+
+        // SCANNER (Câmera)
+        let html5QrcodeScanner = null;
+        let scannerTarget = ''; // 'pdv' or 'form'
+
+        window.startScanner = (target) => {
+            scannerTarget = target;
+            document.getElementById('modal-scanner').classList.remove('hidden');
+            if(!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250}, rememberLastUsedCamera: true });
+            }
+            html5QrcodeScanner.render(onScanSuccess, (err)=>{});
+        };
+
+        window.stopScanner = () => {
+            if(html5QrcodeScanner) { html5QrcodeScanner.clear().catch(()=>{}); html5QrcodeScanner = null; }
+            document.getElementById('modal-scanner').classList.add('hidden');
+        };
+
+        const onScanSuccess = (decodedText) => {
+            if(scannerTarget === 'pdv') {
+                const p = window.products.find(x => x.sku === decodedText);
+                if(p) { window.addToCart(p.id); window.showAlert(`${p.name} adicionado!`, 'success'); }
+                else window.showAlert("Produto não encontrado no estoque.");
+            } else if (scannerTarget === 'form') {
+                document.getElementById('prod-sku').value = decodedText;
+            }
+            stopScanner();
+        };
+
     </script>
 </body>
 </html>
