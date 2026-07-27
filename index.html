@@ -3,60 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuitandaManager - PDV e Estoque</title>
+    <title>QuitandaManager - PDV Completo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 z-50 bg-white flex items-center justify-center p-4">
-        <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-2xl border border-gray-100">
-            <h2 class="text-2xl font-bold text-center mb-6 text-green-600">QuitandaManager</h2>
-            <form id="login-form" class="space-y-4">
-                <input type="email" id="email" placeholder="E-mail" class="w-full p-3 border rounded-lg" required>
-                <input type="password" id="password" placeholder="Senha" class="w-full p-3 border rounded-lg" required>
-                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">Entrar</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- APP WRAPPER -->
-    <div id="app-content" class="hidden">
-        <header class="bg-white border-b sticky top-0 z-40">
-            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                <h1 class="font-bold text-green-600">QuitandaManager</h1>
-                <nav id="nav-tabs" class="flex gap-4 text-sm font-medium text-gray-500"></nav>
-                <button onclick="logout()" class="text-red-500 text-sm font-medium">Sair</button>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="hidden">
+        <nav class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
+            <h1 class="font-bold text-green-600 text-xl">QuitandaManager</h1>
+            <div id="nav-menu" class="flex gap-4">
+                <button onclick="changeTab('pdv')" class="text-gray-700 font-semibold hover:text-green-600">PDV</button>
+                <button id="estoque-tab" onclick="changeTab('estoque')" class="hidden text-gray-700 hover:text-green-600">Estoque</button>
+                <button id="caixa-tab" onclick="changeTab('caixa')" class="hidden text-gray-700 hover:text-green-600">Caixa</button>
+                <button onclick="logout()" class="text-red-500 hover:text-red-700">Sair</button>
             </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto p-4">
-            <div id="view-pdv" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2">
-                    <input type="text" id="search" placeholder="Buscar ou Bipar..." class="w-full p-3 border rounded-xl mb-4">
-                    <div id="pdv-ui" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border h-fit">
-                    <h3 class="font-bold mb-4">Carrinho</h3>
-                    <div id="cart-list" class="space-y-2 mb-4"></div>
-                    <div class="text-2xl font-bold text-green-600 mb-4" id="total">R$ 0,00</div>
-                    <button onclick="openCheckout()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Pagar</button>
-                </div>
-            </div>
-        </main>
+        </nav>
+        <main id="main-content" class="p-6 max-w-7xl mx-auto"></main>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // SUA CONFIGURAÇÃO (SUBSTITUA PELAS SUAS CHAVES)
         const firebaseConfig = {
             apiKey: "AIzaSyDM6eLPCIO6NAwv6jRRmSh3YppohWcFILM",
             authDomain: "sistema-mini-mercado.firebaseapp.com",
@@ -66,68 +38,56 @@
             appId: "1:956443578773:web:202d968d3787ed7bdba69c",
             measurementId: "G-RMY289M8X1"
         };
-        const ADMIN_EMAILS = ["seuemail@gmail.com"];
+        const ADMIN_EMAILS = ["seuemail@gmail.com"]; // SUBSTITUA PELO SEU EMAIL
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let products = [];
-        let cat = null;
+        let currentTab = 'pdv';
 
         onAuthStateChanged(auth, u => {
             if(u) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                
-                const nav = document.getElementById('nav-tabs');
-                nav.innerHTML = `<button onclick="switchTab('pdv')">PDV</button>` + 
-                                (ADMIN_EMAILS.includes(u.email) ? `<button onclick="switchTab('estoque')">Estoque</button>` : '');
-                
-                onSnapshot(collection(db, 'products'), s => {
-                    products = s.docs.map(d => ({id: d.id, ...d.data()}));
-                    renderPDV();
-                });
-                
-                switchTab('pdv');
-            } else {
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('app-content').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                if(ADMIN_EMAILS.includes(u.email)) {
+                    document.getElementById('estoque-tab').classList.remove('hidden');
+                    document.getElementById('caixa-tab').classList.remove('hidden');
+                }
+                changeTab('pdv');
             }
         });
 
-        window.logout = () => signOut(auth);
-        window.switchTab = (t) => { /* Lógica de troca de abas aqui */ renderPDV(); };
+        window.changeTab = (t) => {
+            currentTab = t;
+            const main = document.getElementById('main-content');
+            if(t === 'pdv') renderPDV(main);
+            else if(t === 'estoque') main.innerHTML = '<h2>Estoque (Painel Admin)</h2>';
+            else if(t === 'caixa') main.innerHTML = '<h2>Caixa (Painel Admin)</h2>';
+        };
 
-        const colors = { 'Hortifruti': 'bg-green-100', 'Bebidas': 'bg-blue-100', 'Laticínios': 'bg-yellow-100', 'Limpeza': 'bg-purple-100', 'Mercearia': 'bg-orange-100', 'Padaria': 'bg-amber-100', 'Outros': 'bg-gray-100' };
-
-        window.renderPDV = () => {
+        window.renderPDV = (el) => {
+            el.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div id="pdv-ui" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h2 class="font-bold text-lg mb-4">Carrinho</h2>
+                        <div id="cart-list" class="space-y-2 mb-4"></div>
+                        <button onclick="finalizarVenda()" class="w-full bg-green-600 text-white p-3 rounded font-bold">Pagar</button>
+                    </div>
+                </div>
+            `;
+            // Categoria mock
+            const cats = ['Hortifruti', 'Bebidas', 'Padaria'];
             const ui = document.getElementById('pdv-ui');
-            ui.innerHTML = '';
-            if(!cat) {
-                Object.keys(colors).forEach(c => {
-                    ui.innerHTML += `<div onclick="cat='${c}'; renderPDV()" class="p-8 ${colors[c]} rounded-2xl font-bold text-center cursor-pointer shadow-sm hover:scale-105 transition-transform">${c}</div>`;
-                });
-            } else {
-                ui.innerHTML += `<button onclick="cat=null; renderPDV()" class="col-span-2 sm:col-span-4 underline mb-2">← Voltar</button>`;
-                products.filter(p => p.category === cat).forEach(p => {
-                    ui.innerHTML += `<div class="bg-white p-4 rounded-xl border shadow-sm text-center">
-                        <div class="font-bold">${p.name}</div>
-                        <div class="text-green-600 font-bold mb-2">R$ ${p.price?.toFixed(2)}</div>
-                        <div class="flex justify-center items-center gap-2">
-                            <input type="number" value="1" class="w-16 p-1 border rounded text-center">
-                            <button class="bg-green-600 text-white px-3 py-1 rounded">+</button>
-                        </div>
-                    </div>`;
-                });
-            }
+            cats.forEach(c => {
+                ui.innerHTML += `<div class="p-6 bg-white border rounded-lg cursor-pointer hover:shadow-lg transition-all">${c}</div>`;
+            });
         };
 
-        document.getElementById('login-form').onsubmit = (e) => {
-            e.preventDefault();
-            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
-                .catch(() => alert("Erro ao logar"));
-        };
+        window.logout = () => signOut(auth);
     </script>
 </body>
 </html>
