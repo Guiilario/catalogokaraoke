@@ -1,1189 +1,927 @@
 <!DOCTYPE html>
-<html lang="pt-PT" class="h-full w-full overflow-x-hidden">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BRINK FEST KARAOKÊ - Catálogo de Músicas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuitandaManager - PDV e Estoque</title>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        black: '#000000',
-                        warmZinc: '#121214',
-                        warmBorder: '#27272a',
-                        brand: {
-                            light: '#fef3c7', // amber-100
-                            DEFAULT: '#f59e0b', // amber-500
-                            dark: '#b45309' // amber-700
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PDF.js para leitura e indexação local de alta precisão -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+    <!-- HTML5 QRCode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
-        /* Bloqueio estrito de rolagem lateral */
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            transition: background-color 0.3s ease, color 0.3s ease;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
         }
 
-        /* Tema Escuro Ativo (Padrão) */
-        body.theme-dark {
-            background-color: #000000;
-            color: #f4f4f5;
-        }
-        body.theme-dark .header-bar {
-            background-color: #000000;
-            border-color: #18181b;
-        }
-        body.theme-dark .song-card {
-            background-color: #121214;
-            border-color: #1f1f23;
-        }
-        body.theme-dark .bg-auxiliar {
-            background-color: #09090b;
-        }
-        body.theme-dark .logo-text {
-            color: #ffffff;
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
         }
 
-        /* Tema Claro Ativo */
-        body.theme-light {
-            background-color: #f4f4f5;
-            color: #09090b;
-        }
-        body.theme-light .header-bar {
-            background-color: #ffffff;
-            border-color: #e4e4e7;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        body.theme-light .song-card {
-            background-color: #ffffff;
-            border-color: #e4e4e7;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        body.theme-light .bg-auxiliar {
-            background-color: #e4e4e7;
-        }
-        body.theme-light .logo-text {
-            color: #09090b;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Scrollbar suave e fina */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
+        /* Hide scrollbar for cleaner UI in cart */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #3f3f46;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #f59e0b;
-        }
-
-        /* Destaque para termos encontrados na pesquisa */
-        mark {
-            background-color: rgba(245, 158, 11, 0.18);
-            color: #d97706;
-            font-weight: 700;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-
-        /* Rotação suave do disco de vinil */
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-            animation: spin-slow 12s linear infinite;
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
     </style>
 </head>
-<body class="theme-dark font-sans min-h-screen flex flex-col antialiased w-full">
+<body class="text-gray-900 antialiased min-h-screen flex flex-col">
 
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    </script>
-
-    <!-- Notificações flutuantes no ecrã (Toast) -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-[calc(100vw-3rem)] pointer-events-none"></div>
-
-    <!-- TELA DE ANIMAÇÃO INICIAL / CARREGAMENTO AUTOMÁTICO DO PDF -->
-    <div id="splash-screen" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 transition-all duration-500 pointer-events-auto">
-        <div id="splash-drag-zone" class="w-full max-w-md p-8 rounded-3xl border border-zinc-900 bg-zinc-950/20 flex flex-col items-center gap-6 transition-all duration-300">
-            
-            <!-- Disco de Vinil com rotação constante -->
-            <div class="relative w-32 h-32 flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse"></div>
-                <div class="w-28 h-28 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center shadow-2xl animate-spin-slow">
-                    <div class="w-20 h-28 rounded-full border border-zinc-700/30 absolute"></div>
-                    <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center border-4 border-zinc-950">
-                        <div class="w-2 h-2 rounded-full bg-black"></div>
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-green-600 p-2 rounded-lg text-white">
+                        <i data-lucide="package" class="w-6 h-6"></i>
                     </div>
+                    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">QuitandaManager</h1>
                 </div>
-            </div>
-
-            <!-- Título do Aplicativo com Subtítulo -->
-            <div class="text-center flex flex-col items-center">
-                <h2 class="text-2xl font-black tracking-widest text-white uppercase">BRINK FEST <span class="text-amber-500">KARAOKÊ</span></h2>
-                <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
-                <p id="splash-status-text" class="text-xs text-amber-500 font-semibold tracking-wider mt-4 uppercase">A procurar o catálogo...</p>
-            </div>
-
-            <!-- Progresso de Carregamento & Sincronização -->
-            <div id="loader-box" class="w-full pt-4 border-t border-zinc-900">
-                <div class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-widest">
-                    <span id="loader-status-container" class="text-zinc-400 flex items-center gap-1.5">
-                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500" id="spinner-icon"></i>
-                        <span id="loader-status">A iniciar ligação...</span>
-                    </span>
-                    <span id="loader-percent" class="text-amber-500">0%</span>
-                </div>
-                <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
-                    <div id="loader-bar" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
-                </div>
-                <p id="loader-details" class="text-[9px] text-zinc-600 mt-1 truncate">A preparar ligação do servidor...</p>
-            </div>
-
-            <!-- Botão de Carregamento Manual (Visível apenas em caso de falha de ligação automática) -->
-            <div id="dropzone-area" class="hidden w-full text-center flex flex-col items-center border-t border-zinc-900 pt-4">
-                <p class="text-xs text-zinc-400 font-bold leading-relaxed mb-4">
-                    Não foi possível sincronizar o ficheiro do servidor automaticamente.
-                </p>
-                <input type="file" id="pdf-uploader" accept=".pdf" class="hidden">
-                <button onclick="triggerFileInput()" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs tracking-wider transition-all shadow-md uppercase">
-                    SELECIONAR PDF LOCALMENTE
+                <button id="btn-novo-produto" onclick="openModal()" class="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-sm hidden">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline">Novo Produto</span>
                 </button>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- CABEÇALHO DO BUSCADOR (SÓ EXIBE LOGO, TOTAL, ESCURO/CLARO E SAIR) -->
-    <header id="app-header" class="header-bar border-b sticky top-0 z-40 px-4 py-5 w-full transition-colors duration-300 hidden">
-        <div class="max-w-3xl mx-auto flex flex-col items-center justify-center gap-4 w-full">
-            
-            <!-- Logo Centralizado no Topo com Subtítulo -->
-            <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-black shrink-0 shadow-sm">
-                        <i data-lucide="music-3" class="w-4.5 h-4.5 text-black font-extrabold"></i>
-                    </div>
-                    <h1 class="logo-text text-xl sm:text-2xl font-black tracking-widest uppercase transition-colors duration-300 text-center">
-                        BRINK FEST <span class="text-amber-500">KARAOKÊ</span>
-                    </h1>
-                </div>
-                <p class="text-[10px] text-zinc-500 font-bold tracking-wider uppercase mt-1">Catálogo de músicas</p>
             </div>
             
-            <!-- Ações e Contadores Reorganizados Abaixo do Título -->
-            <div class="flex items-center justify-center gap-2 flex-wrap w-full">
-                
-                <!-- Número de Faixas / Status do Catálogo -->
-                <span class="text-[10px] font-bold tracking-wider px-2.5 py-2 rounded-lg bg-zinc-900 text-zinc-400 border border-zinc-850 flex items-center gap-1.5" id="header-status">
-                    0 MÚSICAS
-                </span>
-
-                <!-- Seletor de Tema Claro/Escuro -->
-                <button onclick="toggleTheme()" class="p-2 text-zinc-400 hover:text-amber-500 rounded-lg border border-zinc-850 hover:border-zinc-500 transition-all duration-200 bg-zinc-900/40 flex items-center justify-center gap-1.5" title="Alternar Tema">
-                    <i id="theme-icon" data-lucide="sun" class="w-4 h-4"></i>
-                    <span class="text-[9px] font-bold tracking-wider uppercase hidden sm:inline">Tema</span>
+            <div class="flex space-x-4 border-b border-gray-200">
+                <button onclick="switchTab('estoque')" id="tab-estoque" class="nav-tab pb-3 px-2 flex items-center space-x-2 font-medium text-sm transition-colors relative text-green-600 border-b-2 border-green-600">
+                    <i data-lucide="box" class="w-4 h-4"></i><span>Estoque</span>
                 </button>
-                
-                <!-- Botão Sair (Zerar Catálogo localmente e recarregar do servidor GitHub Pages) -->
-                <button onclick="exitApp()" class="p-2 text-rose-400 hover:text-rose-300 rounded-lg border border-zinc-850 hover:border-rose-500/40 transition-all duration-200 bg-zinc-900/40 flex items-center justify-center gap-1.5" title="Limpar Cache Local e Sincronizar">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    <span class="text-[9px] font-bold tracking-wider uppercase">Sair / Atualizar</span>
+                <button onclick="switchTab('pdv')" id="tab-pdv" class="nav-tab pb-3 px-2 flex items-center space-x-2 font-medium text-sm transition-colors relative text-gray-500 hover:text-gray-700">
+                    <i data-lucide="store" class="w-4 h-4"></i><span>PDV (Vendas)</span>
                 </button>
-                
+                <button onclick="switchTab('caixa')" id="tab-caixa" class="nav-tab pb-3 px-2 flex items-center space-x-2 font-medium text-sm transition-colors relative text-gray-500 hover:text-gray-700">
+                    <i data-lucide="history" class="w-4 h-4"></i><span>Controle de Caixa</span>
+                </button>
             </div>
-
         </div>
     </header>
 
-    <!-- ÁREA CENTRAL DO APLICATIVO -->
-    <main class="flex-1 max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6 box-border overflow-hidden">
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
-        <!-- SEÇÃO PRINCIPAL DE PESQUISA (CLEAN & MINIMALISTA) -->
-        <section id="search-section" class="hidden flex flex-col gap-4 w-full box-border">
-            
-            <!-- Entrada de Busca de Alto Contraste Fixo (Fundo branco e texto preto em ambos os temas) -->
-            <div class="relative w-full">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
-                    <i data-lucide="search" class="w-4.5 h-4.5"></i>
-                </span>
-                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Pesquise por música, intérprete, início da letra ou código..." class="w-full bg-white text-black font-extrabold border-2 border-zinc-300 focus:border-amber-500 focus:ring-0 rounded-xl py-3.5 pl-11 pr-11 text-sm transition-all focus:outline-none shadow animate-none" autocomplete="off">
-                <button id="voice-btn" onclick="startVoiceSearch()" class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black transition-colors" title="Pesquisar por Voz">
-                    <i data-lucide="mic" class="w-4.5 h-4.5"></i>
-                </button>
-            </div>
+        <!-- Alertas Globais -->
+        <div id="alert-container" class="mb-6 hidden fade-in">
+            <!-- Preenchido via JS -->
+        </div>
 
-            <!-- Filtros Rápidos & Metadados da Busca -->
-            <div class="flex items-center justify-between gap-3 w-full mt-1 flex-wrap">
-                <!-- Filtros por idioma -->
-                <div id="lang-selector" class="bg-auxiliar flex gap-1 p-1 rounded-lg border border-zinc-800/10 overflow-x-auto transition-colors duration-300">
-                    <button onclick="setLanguage('ALL')" id="lang-ALL" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none bg-amber-500 text-black shadow">TODOS</button>
-                    <button onclick="setLanguage('BRA')" id="lang-BRA" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200">🇧🇷 NACIONAL</button>
-                    <button onclick="setLanguage('EUA')" id="lang-EUA" class="px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200">🇺🇸 INTERNACIONAL</button>
-                </div>
+        <!-- Conteúdo das Abas -->
+        <div id="view-estoque" class="tab-content block fade-in">
+            <!-- Dashboard e Tabela renderizados aqui -->
+        </div>
 
-                <!-- Detalhes da pesquisa atual -->
-                <div class="text-[10px] text-zinc-500 flex items-center gap-1.5" id="search-meta">
-                    <span id="results-count">Filtrando músicas...</span>
-                    <span id="artist-alert" class="hidden text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider items-center gap-1">
-                        <i data-lucide="sparkles" class="w-3 h-3"></i> Listagem completa do artista
-                    </span>
-                </div>
-            </div>
+        <div id="view-pdv" class="tab-content hidden fade-in">
+            <!-- Interface PDV renderizada aqui -->
+        </div>
 
-            <!-- CONTAINER PRINCIPAL DA LISTAGEM DE MÚSICAS -->
-            <div id="songs-list-container" class="flex flex-col gap-2.5 w-full box-border">
-                <!-- Preenchido via JavaScript -->
-            </div>
-
-            <!-- CONTROLES DE PAGINAÇÃO DINÂMICA -->
-            <div id="pagination-box" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-zinc-900/50 w-full">
-                <!-- Status numérico -->
-                <div class="text-[11px] text-zinc-500 font-medium">
-                    A mostrar <span id="pag-start-index" class="font-bold text-zinc-400">0</span> a <span id="pag-end-index" class="font-bold text-zinc-400">0</span> de <span id="pag-total" class="font-bold text-zinc-400">0</span> músicas
-                </div>
-                
-                <!-- Navegação de Páginas -->
-                <div class="flex items-center gap-1.5" id="pagination-controls-container">
-                    <!-- Gerado dinamicamente via JS -->
-                </div>
-            </div>
-        </section>
+        <div id="view-caixa" class="tab-content hidden fade-in">
+            <!-- Interface Caixa renderizada aqui -->
+        </div>
 
     </main>
 
-    <!-- Lógica de Operação do Sistema -->
-    <script>
-        let songs = [];
-        let currentLanguage = 'ALL';
-        let searchQuery = '';
-        let currentPage = 1;
-        const itemsPerPage = 25;
-        let currentTheme = 'dark';
+    <!-- Modal Produto -->
+    <div id="modal-produto" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form id="form-produto" onsubmit="saveProduct(event)">
+                    <input type="hidden" id="prod-id">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 border-b pb-2" id="modal-title">Novo Produto</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Nome do Produto *</label>
+                                <input type="text" id="prod-nome" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Categoria *</label>
+                                <select id="prod-categoria" required class="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    <option value="" disabled selected>Selecione uma categoria</option>
+                                    <option value="Hortifruti">Hortifruti</option>
+                                    <option value="Bebidas">Bebidas</option>
+                                    <option value="Laticínios">Laticínios</option>
+                                    <option value="Limpeza">Limpeza</option>
+                                    <option value="Mercearia">Mercearia</option>
+                                    <option value="Padaria">Padaria</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Preço (R$) *</label>
+                                    <input type="number" id="prod-preco" step="0.01" min="0" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Código/SKU</label>
+                                    <div class="mt-1 flex rounded-md shadow-sm">
+                                        <input type="text" id="prod-sku" placeholder="Opcional" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                        <button type="button" onclick="startScanner('form')" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                                            <i data-lucide="camera" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Qtd. em Estoque *</label>
+                                    <input type="number" id="prod-qtd" min="0" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Estoque Mínimo *</label>
+                                    <input type="number" id="prod-min-qtd" min="0" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">Salvar Produto</button>
+                        <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-        window.onload = function() {
-            lucide.createIcons();
-            
-            // Carrega tema preferido salvo
-            applyTheme(localStorage.getItem('karaoke_theme') || 'dark');
+    <!-- Modal Scanner -->
+    <div id="modal-scanner" class="fixed inset-0 z-[60] overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity" onclick="stopScanner()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Ler Código de Barras</h3>
+                        <button onclick="stopScanner()" class="text-gray-400 hover:text-gray-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    </div>
+                    <div id="reader" class="w-full min-h-[300px]"></div>
+                    <p class="text-sm text-gray-500 text-center mt-4">Posicione o código de barras no centro da câmera.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Configuração do Drag e Drop no Splash Screen
-            setupDragAndDrop();
+    <!-- Modal Checkout -->
+    <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" onclick="closeCheckoutModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full">
+                <form id="form-checkout" onsubmit="processCheckout(event)">
+                    <div class="bg-white px-6 pt-5 pb-6">
+                        <div class="flex justify-between items-center mb-5 border-b pb-3">
+                            <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                                <i data-lucide="receipt" class="mr-2 text-green-600"></i> Pagamento
+                            </h3>
+                            <button type="button" onclick="closeCheckoutModal()" class="text-gray-400 hover:text-gray-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+                        </div>
+                        
+                        <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200 text-center shadow-inner">
+                            <p class="text-sm text-gray-500 uppercase tracking-wide font-semibold">Total a Pagar</p>
+                            <p class="text-4xl font-extrabold text-green-600 mt-1" id="checkout-total">R$ 0,00</p>
+                        </div>
 
-            // Tenta carregar catálogo completo da cache local do navegador
-            const cachedDatabase = localStorage.getItem('brinkfest_database_precision');
-            if (cachedDatabase) {
-                try {
-                    songs = JSON.parse(cachedDatabase);
-                    completeLoading();
-                } catch(e) {
-                    startAutoFetchPipeline();
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Forma de Pagamento</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="pay-method border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-green-50 border-green-500 text-green-700 shadow-sm ring-1 ring-green-500" onclick="setPaymentMethod('dinheiro', this)">
+                                        <i data-lucide="banknote" class="w-6 h-6 mb-1"></i>
+                                        <span class="text-sm font-medium">Dinheiro</span>
+                                    </label>
+                                    <label class="pay-method border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-gray-50" onclick="setPaymentMethod('pix', this)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-1"><polygon points="12 2 22 12 12 22 2 12 12 2"></polygon></svg>
+                                        <span class="text-sm font-medium">PIX</span>
+                                    </label>
+                                    <label class="pay-method border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-gray-50" onclick="setPaymentMethod('cartao_debito', this)">
+                                        <i data-lucide="credit-card" class="w-6 h-6 mb-1"></i>
+                                        <span class="text-sm font-medium">Débito</span>
+                                    </label>
+                                    <label class="pay-method border rounded-xl p-3 flex flex-col items-center cursor-pointer transition-all bg-white border-gray-300 hover:bg-gray-50" onclick="setPaymentMethod('cartao_credito', this)">
+                                        <i data-lucide="credit-card" class="w-6 h-6 mb-1"></i>
+                                        <span class="text-sm font-medium">Crédito</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="dinheiro-panel" class="animate-in fade-in bg-green-50 p-4 rounded-xl border border-green-200">
+                                <label class="block text-sm font-semibold text-green-900 mb-2">Valor Recebido (R$)</label>
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-lg font-bold">R$</span>
+                                    </div>
+                                    <input type="number" id="checkout-recebido" step="0.01" oninput="calculateChange()" class="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-xl font-bold" placeholder="0.00">
+                                </div>
+                                <div id="troco-panel" class="mt-3 flex justify-between items-center bg-white p-3 rounded-lg border border-green-200 hidden">
+                                    <span class="text-sm font-bold text-gray-700">Troco a devolver:</span>
+                                    <span class="text-xl font-extrabold text-green-600" id="checkout-troco">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-4 rounded-b-xl flex flex-col sm:flex-row-reverse gap-3 border-t border-gray-200">
+                        <button type="submit" id="btn-confirm-checkout" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-md px-4 py-3 bg-green-600 text-base font-bold text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:text-sm">Confirmar Venda</button>
+                        <button type="button" onclick="closeCheckoutModal()" class="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-3 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Voltar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Firebase e Lógica da Aplicação -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config (Fallback para mock caso não injetado no ambiente)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            projectId: "demo-project"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-market-app';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // App State Globals
+        window.user = null;
+        window.products = [];
+        window.sales = [];
+        window.cart = [];
+        window.currentTab = 'estoque';
+        window.searchTerm = '';
+        window.posSearchTerm = '';
+        window.paymentMethod = 'dinheiro';
+        window.cartTotal = 0;
+        window.html5QrcodeScanner = null;
+        window.scannerTarget = null; // 'pos' ou 'form'
+
+        // Utils
+        const formatMoney = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        const formatDateTime = (isoString) => new Date(isoString).toLocaleString('pt-BR');
+        const generateSKU = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // Inicialização de Autenticação
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
-            } else {
-                startAutoFetchPipeline();
+            } catch (err) {
+                console.error("Erro de Auth:", err);
+                showAlert("Erro ao autenticar no banco de dados.", "error");
             }
-
-            document.getElementById('pdf-uploader').addEventListener('change', handlePdfManualUpload);
         };
 
-        // PIPELINE DE DOWNLOAD AUTOMÁTICO COM PROGRESSO REAL (Especial para GitHub Pages)
-        async function startAutoFetchPipeline() {
-            const statusText = document.getElementById('splash-status-text');
-            const loaderStatus = document.getElementById('loader-status');
-            const loaderPercent = document.getElementById('loader-percent');
-            const progressBar = document.getElementById('loader-bar');
-            const detailsText = document.getElementById('loader-details');
+        // Listeners do Banco
+        onAuthStateChanged(auth, (currentUser) => {
+            window.user = currentUser;
+            if (currentUser) {
+                const productsRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+                const salesRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales');
 
-            // Múltiplas variações para cobrir todas as codificações (NFC e NFD do macOS/Windows)
-            const possibleFilenames = [
-                'catalogo.pdf',
-                'Catálogo karaokê .pdf', // Decomposed (macOS)
-                'Catálogo karaokê .pdf', // Composed (Windows/Linux)
-                'catalogo_karaoke.pdf',
-                'Catálogo karaokê.pdf',
-                'Cata%CC%81logo%20karaoke%CC%82%20.pdf', // URL encoded decomposed
-                'Cat%C3%A1logo%20karaok%C3%AA%20.pdf'   // URL encoded composed
-            ];
+                onSnapshot(productsRef, (snapshot) => {
+                    window.products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.products.sort((a, b) => a.name.localeCompare(b.name));
+                    reRenderCurrentTab();
+                }, (err) => console.error(err));
 
-            let targetBuffer = null;
-            let successFilename = "";
-
-            for (let name of possibleFilenames) {
-                try {
-                    statusText.innerText = "A descarregar catálogo...";
-                    loaderStatus.innerText = "A procurar ficheiro...";
-                    
-                    const response = await fetch(name);
-                    if (response.ok) {
-                        const contentLength = response.headers.get('content-length');
-                        const totalBytes = parseInt(contentLength, 10);
-                        let loadedBytes = 0;
-                        
-                        const reader = response.body.getReader();
-                        const chunks = [];
-                        
-                        while(true) {
-                            const {done, value} = await reader.read();
-                            if (done) break;
-                            chunks.push(value);
-                            loadedBytes += value.length;
-                            
-                            if (totalBytes) {
-                                const percent = Math.round((loadedBytes / totalBytes) * 100);
-                                progressBar.style.width = percent + '%';
-                                loaderPercent.innerText = percent + '%';
-                                loaderStatus.innerText = "A transferir ficheiro...";
-                                detailsText.innerText = `Descarregados ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB de ${(totalBytes / (1024 * 1024)).toFixed(1)}MB (${percent}%)`;
-                            } else {
-                                detailsText.innerText = `Transferidos: ${(loadedBytes / (1024 * 1024)).toFixed(1)}MB...`;
-                            }
-                        }
-
-                        // Une todos os pacotes binários
-                        let position = 0;
-                        targetBuffer = new Uint8Array(loadedBytes);
-                        for(let chunk of chunks) {
-                            targetBuffer.set(chunk, position);
-                            position += chunk.length;
-                        }
-                        
-                        successFilename = name;
-                        break;
-                    }
-                } catch(e) {
-                    console.log(`Tentativa ignorada para: ${name}`);
-                }
+                onSnapshot(salesRef, (snapshot) => {
+                    window.sales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.sales.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    if(window.currentTab === 'caixa') renderCaixa();
+                }, (err) => console.error(err));
             }
+        });
 
-            if (targetBuffer) {
-                try {
-                    loaderStatus.innerText = "A indexar biblioteca...";
-                    progressBar.style.width = "40%";
-                    loaderPercent.innerText = "40%";
-                    detailsText.innerText = "A abrir base de dados PDF...";
-                    
-                    await processPDFData(targetBuffer);
-                    completeLoading();
-                } catch (err) {
-                    console.error("Falha ao indexar o PDF:", err);
-                    showFallbackDropzone();
+        initAuth();
+
+        // Inicializa icones pela primeira vez
+        lucide.createIcons();
+
+        // ==========================
+        // UI & NAVIGATION FUNCTIONS
+        // ==========================
+        window.switchTab = (tabId) => {
+            window.currentTab = tabId;
+            
+            // Estilizar tabs
+            document.querySelectorAll('.nav-tab').forEach(t => {
+                t.classList.remove('text-green-600', 'border-b-2', 'border-green-600');
+                t.classList.add('text-gray-500', 'hover:text-gray-700');
+            });
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            activeTab.classList.remove('text-gray-500', 'hover:text-gray-700');
+            activeTab.classList.add('text-green-600', 'border-b-2', 'border-green-600');
+
+            // Mostrar conteudo correspondente
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            // Botão "Novo Produto" apenas no estoque
+            const btnNovo = document.getElementById('btn-novo-produto');
+            tabId === 'estoque' ? btnNovo.classList.remove('hidden') : btnNovo.classList.add('hidden');
+
+            reRenderCurrentTab();
+        };
+
+        const reRenderCurrentTab = () => {
+            if(window.currentTab === 'estoque') renderEstoque();
+            if(window.currentTab === 'pdv') renderPDV();
+            if(window.currentTab === 'caixa') renderCaixa();
+            lucide.createIcons();
+        };
+
+        window.showAlert = (msg, type = "error") => {
+            const container = document.getElementById('alert-container');
+            const isSuccess = type === 'success';
+            
+            container.innerHTML = `
+                <div class="bg-${isSuccess ? 'green' : 'red'}-50 border-l-4 border-${isSuccess ? 'green' : 'red'}-500 p-4 rounded-md flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <i data-lucide="${isSuccess ? 'check-circle' : 'alert-triangle'}" class="text-${isSuccess ? 'green' : 'red'}-500 mr-3 w-6 h-6"></i>
+                        <p class="text-${isSuccess ? 'green' : 'red'}-800 font-medium text-lg">${msg}</p>
+                    </div>
+                    <button onclick="document.getElementById('alert-container').classList.add('hidden')" class="text-${isSuccess ? 'green' : 'red'}-500 hover:text-${isSuccess ? 'green' : 'red'}-700">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            `;
+            container.classList.remove('hidden');
+            lucide.createIcons();
+            
+            if(isSuccess) {
+                setTimeout(() => container.classList.add('hidden'), 8000);
+            }
+        };
+
+        // ==========================
+        // VIEWS RENDER LOGIC
+        // ==========================
+        window.handleEstoqueSearch = (val) => {
+            window.searchTerm = val;
+            renderEstoque();
+            lucide.createIcons();
+        };
+
+        const renderEstoque = () => {
+            const view = document.getElementById('view-estoque');
+            const totalItems = window.products.reduce((sum, p) => sum + parseInt(p.quantity||0), 0);
+            const totalValue = window.products.reduce((sum, p) => sum + ((p.quantity||0) * (p.price||0)), 0);
+            const lowStockItems = window.products.filter(p => (p.quantity||0) <= (p.minQuantity||0)).length;
+
+            const filtered = window.products.filter(p => 
+                p.name.toLowerCase().includes(window.searchTerm.toLowerCase()) || 
+                p.category.toLowerCase().includes(window.searchTerm.toLowerCase()) ||
+                (p.sku && p.sku.toLowerCase().includes(window.searchTerm.toLowerCase()))
+            );
+
+            let tableRows = filtered.length === 0 ? 
+                `<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Nenhum produto encontrado no estoque.</td></tr>` : 
+                filtered.map(p => {
+                    let statusHtml = '';
+                    if (p.quantity <= 0) {
+                        statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Esgotado</span>`;
+                    } else if (p.quantity <= p.minQuantity) {
+                        statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Baixo</span>`;
+                    } else {
+                        statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Normal</span>`;
+                    }
+
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${p.name}</div>
+                            <div class="text-xs text-gray-500">SKU: ${p.sku || 'N/A'}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">${p.category}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">${formatMoney(p.price)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <span class="text-sm text-gray-900 font-medium">${p.quantity}</span>
+                            <span class="text-xs text-gray-500 ml-1">un.</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">${statusHtml}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick='openEditModal(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 mr-4" title="Editar"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                            <button onclick="deleteProduct('${p.id}')" class="text-red-600 hover:text-red-900" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+            view.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
+                        <div class="p-3 rounded-lg bg-green-50 text-green-600 mr-4"><i data-lucide="package" class="w-8 h-8"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium mb-1">Total de Itens (Físico)</p><p class="text-2xl font-bold text-gray-900">${totalItems} un.</p></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
+                        <div class="p-3 rounded-lg bg-blue-50 text-blue-600 mr-4"><i data-lucide="dollar-sign" class="w-8 h-8"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium mb-1">Valor do Estoque</p><p class="text-2xl font-bold text-gray-900">${formatMoney(totalValue)}</p></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
+                        <div class="p-3 rounded-lg bg-amber-50 text-amber-600 mr-4"><i data-lucide="alert-triangle" class="w-8 h-8"></i></div>
+                        <div><p class="text-sm text-gray-500 font-medium mb-1">Alertas de Estoque Baixo</p><p class="text-2xl font-bold text-amber-600">${lowStockItems} produtos</p></div>
+                    </div>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50">
+                        <div class="relative w-full sm:w-96">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="search" class="w-5 h-5 text-gray-400"></i></div>
+                            <input type="text" oninput="handleEstoqueSearch(this.value)" value="${window.searchTerm}" placeholder="Buscar por nome, categoria ou SKU..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm shadow-sm">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço (R$)</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Estoque</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        window.handlePosSearch = (e) => {
+            if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                const term = e.target.value.trim().toLowerCase();
+                const matched = window.products.find(p => (p.sku && p.sku.toLowerCase() === term) || p.name.toLowerCase() === term);
+                if (matched) {
+                    addToCart(matched.id);
+                    e.target.value = '';
+                    window.posSearchTerm = '';
+                } else {
+                    showAlert("Produto não encontrado no estoque.");
                 }
             } else {
-                showFallbackDropzone();
+                window.posSearchTerm = e.target.value;
+                renderPDVProductsGrid();
             }
-        }
+        };
 
-        // Mostra dropzone em caso de falha de conexão automática
-        function showFallbackDropzone() {
-            document.getElementById('splash-status-text').innerText = "Catálogo em Sincronização";
-            document.getElementById('loader-box').classList.add('hidden');
-            document.getElementById('dropzone-area').classList.remove('hidden');
-        }
-
-        // Exibe painel de upload inicial
-        function showUploadPanel() {
-            const splash = document.getElementById('splash-screen');
-            splash.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
-            splash.classList.add('pointer-events-auto');
-
-            document.getElementById('app-header').classList.add('hidden');
-            document.getElementById('search-section').classList.add('hidden');
-            document.getElementById('loader-box').classList.add('hidden');
-            document.getElementById('dropzone-area').classList.remove('hidden');
-            document.getElementById('splash-status-text').innerText = "Aguardando Catálogo...";
-        }
-
-        // Ativa interface de busca limpa
-        function activateSearchMode() {
-            const splash = document.getElementById('splash-screen');
-            splash.classList.add('opacity-0', 'pointer-events-none');
-            splash.classList.remove('pointer-events-auto');
+        const renderPDVProductsGrid = () => {
+            const gridContainer = document.getElementById('pdv-products-grid');
+            if(!gridContainer) return;
             
-            setTimeout(() => {
-                splash.classList.add('hidden');
-            }, 500);
-
-            document.getElementById('app-header').classList.remove('hidden');
-            document.getElementById('search-section').classList.remove('hidden');
-
-            const statusBadge = document.getElementById('header-status');
-            statusBadge.innerHTML = `${songs.length} MÚSICAS`;
-
-            currentPage = 1;
-            renderSongs();
-        }
-
-        // Zera o catálogo carregado e recarrega do servidor
-        function exitApp() {
-            songs = [];
-            localStorage.removeItem('brinkfest_database_precision');
-            document.getElementById('search-input').value = '';
-            searchQuery = '';
+            const term = (window.posSearchTerm || '').toLowerCase();
+            const filtered = window.products.filter(p => p.name.toLowerCase().includes(term) || (p.sku && p.sku.toLowerCase().includes(term)));
             
-            const splash = document.getElementById('splash-screen');
-            splash.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
-            splash.classList.add('pointer-events-auto');
-            document.getElementById('app-header').classList.add('hidden');
-            document.getElementById('search-section').classList.add('hidden');
-            document.getElementById('dropzone-area').classList.add('hidden');
-            document.getElementById('loader-box').classList.remove('hidden');
-            
-            startAutoFetchPipeline();
-            showToast("Memória limpa. A recarregar catálogo do servidor...", "info");
-        }
+            gridContainer.innerHTML = filtered.length === 0 ? `<p class="col-span-full text-center text-gray-500 py-8">Nenhum produto cadastrado.</p>` : 
+                filtered.map(p => `
+                <div onclick="addToCart('${p.id}')" class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${p.quantity > 0 ? 'bg-white border-gray-200 hover:border-green-400' : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'}">
+                    <div class="text-sm font-semibold text-gray-900 truncate mb-1" title="${p.name}">${p.name}</div>
+                    <div class="text-xs text-gray-500 mb-2">${p.category}</div>
+                    <div class="flex justify-between items-end mt-auto">
+                        <span class="text-green-600 font-bold">${formatMoney(p.price)}</span>
+                        <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Qtd: ${p.quantity}</span>
+                    </div>
+                </div>
+            `).join('');
+        };
 
-        function triggerFileInput() {
-            document.getElementById('pdf-uploader').click();
-        }
+        const renderCart = () => {
+            const cartContainer = document.getElementById('pdv-cart-list');
+            const checkoutBtn = document.getElementById('btn-go-checkout');
+            const totalDisplay = document.getElementById('pdv-cart-total');
+            if(!cartContainer) return;
 
-        // DRAG & DROP DO PDF NO SPLASH SCREEN
-        function setupDragAndDrop() {
-            const zone = document.getElementById('splash-screen');
-            const dropArea = document.getElementById('dropzone-area');
-            const loaderBox = document.getElementById('loader-box');
+            window.cartTotal = window.cart.reduce((sum, item) => sum + (item.product.price * item.qty), 0);
+            totalDisplay.innerText = formatMoney(window.cartTotal);
 
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                zone.classList.add('bg-zinc-950');
-            });
-
-            zone.addEventListener('dragleave', () => {
-                zone.classList.remove('bg-zinc-950');
-            });
-
-            zone.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                zone.classList.remove('bg-zinc-950');
+            if(window.cart.length === 0) {
+                cartContainer.innerHTML = `<div class="text-center text-gray-500 py-8">Nenhum item adicionado.<br/>Bipe ou selecione produtos.</div>`;
+                checkoutBtn.className = 'w-full py-3 rounded-lg font-bold text-white transition-colors flex justify-center items-center bg-gray-400 cursor-not-allowed';
+                checkoutBtn.disabled = true;
+            } else {
+                checkoutBtn.className = 'w-full py-3 rounded-lg font-bold text-white transition-colors flex justify-center items-center bg-green-600 hover:bg-green-700 shadow-md';
+                checkoutBtn.disabled = false;
                 
-                const file = e.dataTransfer.files[0];
-                if (file && file.type === 'application/pdf') {
-                    dropArea.classList.add('hidden');
-                    loaderBox.classList.remove('hidden');
+                cartContainer.innerHTML = window.cart.map(item => `
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2">
+                        <div class="flex-1 overflow-hidden">
+                            <div class="font-medium text-sm text-gray-900 truncate" title="${item.product.name}">${item.product.name}</div>
+                            <div class="text-xs text-gray-500">${formatMoney(item.product.price)} x ${item.qty}</div>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2 flex-shrink-0">
+                            <button onclick="updateCartQty('${item.product.id}', -1)" class="p-1 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700"><i data-lucide="minus" class="w-3 h-3"></i></button>
+                            <span class="text-sm font-semibold w-4 text-center">${item.qty}</span>
+                            <button onclick="updateCartQty('${item.product.id}', 1)" class="p-1 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                            <button onclick="removeFromCart('${item.product.id}')" class="p-1 ml-1 text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        };
+
+        const renderPDV = () => {
+            const view = document.getElementById('view-pdv');
+            view.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center"><i data-lucide="package" class="mr-2 w-5 h-5"></i> Produtos Disponíveis</h2>
+                            <div class="flex space-x-2 mb-6">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="search" class="h-5 w-5 text-gray-400"></i></div>
+                                    <input type="text" id="pdv-search-input" onkeyup="handlePosSearch(event)" placeholder="Buscar produto ou bipar código de barras (Enter)..." class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
+                                </div>
+                                <button onclick="startScanner('pos')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center border border-gray-300" title="Ler código com a câmera">
+                                    <i data-lucide="camera" class="w-6 h-6"></i>
+                                </button>
+                            </div>
+                            <div id="pdv-products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto pr-2 pb-4 no-scrollbar">
+                                <!-- Preenchido dinamicamente -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
+                            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center"><i data-lucide="shopping-cart" class="mr-2 w-5 h-5"></i> Caixa Atual</h2>
+                            <div id="pdv-cart-list" class="flex-1 overflow-y-auto max-h-[400px] mb-4 space-y-3 no-scrollbar">
+                                <!-- Carrinho -->
+                            </div>
+                            <div class="border-t border-gray-200 pt-4">
+                                <div class="flex justify-between items-center mb-6">
+                                    <span class="text-lg font-medium text-gray-700">Total:</span>
+                                    <span class="text-2xl font-bold text-green-600" id="pdv-cart-total">R$ 0,00</span>
+                                </div>
+                                <button id="btn-go-checkout" onclick="openCheckoutModal()" disabled class="w-full py-3 rounded-lg font-bold text-white transition-colors flex justify-center items-center bg-gray-400 cursor-not-allowed">Ir para Pagamento</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Focar input após renderizar
+            setTimeout(() => {
+                const input = document.getElementById('pdv-search-input');
+                if(input) { input.value = window.posSearchTerm; input.focus(); }
+                renderPDVProductsGrid();
+                renderCart();
+            }, 50);
+        };
+
+        const renderCaixa = () => {
+            const view = document.getElementById('view-caixa');
+            
+            const total = window.sales.reduce((sum, s) => sum + s.total, 0);
+            const totalDinheiro = window.sales.filter(s => s.paymentMethod === 'dinheiro').reduce((sum, s) => sum + s.total, 0);
+            const totalPix = window.sales.filter(s => s.paymentMethod === 'pix').reduce((sum, s) => sum + s.total, 0);
+            const totalCartao = window.sales.filter(s => s.paymentMethod.includes('cartao')).reduce((sum, s) => sum + s.total, 0);
+
+            const tableRows = window.sales.length === 0 ? 
+                `<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Nenhuma venda registrada ainda.</td></tr>` :
+                window.sales.map(s => {
+                    let badgeClass = s.paymentMethod === 'dinheiro' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                     s.paymentMethod === 'pix' ? 'bg-purple-50 text-purple-700 border-purple-200' : 
+                                     'bg-blue-50 text-blue-700 border-blue-200';
+                    return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateTime(s.timestamp)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-[200px]" title="${s.items.map(i=>i.qty+'x '+i.name).join(', ')}">
+                            ${s.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${badgeClass}">
+                                ${s.paymentMethod.replace('_', ' ').toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">${formatMoney(s.total)}</td>
+                    </tr>
+                `}).join('');
+
+            view.innerHTML = `
+                <div class="space-y-6">
+                    <h2 class="text-xl font-bold text-gray-900 flex items-center mb-6"><i data-lucide="history" class="mr-2 w-6 h-6"></i> Histórico de Vendas e Caixa</h2>
                     
-                    try {
-                        const arrayBuffer = await file.arrayBuffer();
-                        await processPDFData(arrayBuffer);
-                        completeLoading();
-                    } catch (err) {
-                        showFallbackDropzone();
-                        showToast("Falha ao analisar o ficheiro.", "error");
-                    }
-                } else {
-                    showToast("Por favor, envie apenas ficheiros PDF.", "error");
-                }
-            });
-        }
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <p class="text-sm text-gray-500 font-medium">Faturamento Total</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1">${formatMoney(total)}</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <p class="text-sm text-gray-500 font-medium flex items-center"><i data-lucide="banknote" class="w-4 h-4 mr-1"></i> Dinheiro</p>
+                            <p class="text-xl font-bold text-green-600 mt-1">${formatMoney(totalDinheiro)}</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <p class="text-sm text-gray-500 font-medium flex items-center"><i data-lucide="credit-card" class="w-4 h-4 mr-1"></i> Cartões</p>
+                            <p class="text-xl font-bold text-blue-600 mt-1">${formatMoney(totalCartao)}</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <p class="text-sm text-gray-500 font-medium flex items-center">PIX</p>
+                            <p class="text-xl font-bold text-purple-600 mt-1">${formatMoney(totalPix)}</p>
+                        </div>
+                    </div>
 
-        // UPLOAD MANUAL DE SEGURANÇA
-        async function handlePdfManualUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+                    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                        <div class="overflow-x-auto max-h-[600px]">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Itens Vendidos</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pagamento</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
 
-            const dropArea = document.getElementById('dropzone-area');
-            const loaderBox = document.getElementById('loader-box');
+        // ==========================
+        // CRUD & FORM LOGIC
+        // ==========================
+        window.openModal = () => {
+            document.getElementById('modal-title').innerText = 'Novo Produto';
+            document.getElementById('form-produto').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-produto').classList.remove('hidden');
+        };
 
-            dropArea.classList.add('hidden');
-            loaderBox.classList.remove('hidden');
+        window.openEditModal = (p) => {
+            document.getElementById('modal-title').innerText = 'Editar Produto';
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-nome').value = p.name;
+            document.getElementById('prod-categoria').value = p.category;
+            document.getElementById('prod-preco').value = p.price;
+            document.getElementById('prod-sku').value = p.sku;
+            document.getElementById('prod-qtd').value = p.quantity;
+            document.getElementById('prod-min-qtd').value = p.minQuantity;
+            document.getElementById('modal-produto').classList.remove('hidden');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('modal-produto').classList.add('hidden');
+        };
+
+        window.saveProduct = async (e) => {
+            e.preventDefault();
+            if(!window.user) return;
+            
+            const id = document.getElementById('prod-id').value;
+            const data = {
+                name: document.getElementById('prod-nome').value,
+                category: document.getElementById('prod-categoria').value,
+                price: parseFloat(document.getElementById('prod-preco').value) || 0,
+                sku: document.getElementById('prod-sku').value || generateSKU(),
+                quantity: parseInt(document.getElementById('prod-qtd').value) || 0,
+                minQuantity: parseInt(document.getElementById('prod-min-qtd').value) || 5,
+                updatedAt: new Date().toISOString()
+            };
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                await processPDFData(arrayBuffer);
-                completeLoading();
+                if (id) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), data);
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Erro:", error);
+                showAlert("Erro ao salvar produto.");
+            }
+        };
+
+        window.deleteProduct = async (id) => {
+            if(!window.user) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id));
+            } catch (error) {
+                console.error("Erro:", error);
+                showAlert("Erro ao excluir produto.");
+            }
+        };
+
+        // ==========================
+        // CART LOGIC
+        // ==========================
+        window.addToCart = (productId) => {
+            const product = window.products.find(p => p.id === productId);
+            if (!product) return;
+
+            const existing = window.cart.find(i => i.product.id === productId);
+            if (existing) {
+                if (existing.qty >= product.quantity) {
+                    showAlert(`Estoque insuficiente para ${product.name}. Apenas ${product.quantity} disponíveis.`);
+                    return;
+                }
+                existing.qty++;
+            } else {
+                if (product.quantity <= 0) {
+                    showAlert(`${product.name} está esgotado.`);
+                    return;
+                }
+                window.cart.push({ product, qty: 1 });
+            }
+            renderCart();
+            
+            // Foco de volta ao input para leitura contínua
+            const input = document.getElementById('pdv-search-input');
+            if(input) { input.value=''; window.posSearchTerm=''; input.focus(); renderPDVProductsGrid(); }
+        };
+
+        window.updateCartQty = (productId, delta) => {
+            const item = window.cart.find(i => i.product.id === productId);
+            if(!item) return;
+
+            const newQty = item.qty + delta;
+            if (newQty > item.product.quantity) {
+                showAlert(`Apenas ${item.product.quantity} disponíveis em estoque.`);
+                return;
+            }
+            if (newQty <= 0) {
+                window.removeFromCart(productId);
+            } else {
+                item.qty = newQty;
+                renderCart();
+            }
+        };
+
+        window.removeFromCart = (productId) => {
+            window.cart = window.cart.filter(i => i.product.id !== productId);
+            renderCart();
+        };
+
+        // ==========================
+        // CHECKOUT LOGIC
+        // ==========================
+        window.openCheckoutModal = () => {
+            if(window.cart.length === 0) return;
+            window.paymentMethod = 'dinheiro';
+            document.getElementById('checkout-total').innerText = formatMoney(window.cartTotal);
+            document.getElementById('checkout-recebido').value = '';
+            document.getElementById('checkout-troco').innerText = 'R$ 0,00';
+            
+            // Reset styles
+            document.querySelectorAll('.pay-method').forEach(el => {
+                el.classList.remove('bg-green-50', 'bg-purple-50', 'bg-blue-50', 'border-green-500', 'border-purple-500', 'border-blue-500', 'ring-1');
+                el.classList.add('bg-white', 'border-gray-300');
+            });
+            document.querySelector('.pay-method').classList.add('bg-green-50', 'border-green-500', 'ring-1', 'ring-green-500');
+            document.getElementById('dinheiro-panel').classList.remove('hidden');
+
+            document.getElementById('modal-checkout').classList.remove('hidden');
+        };
+
+        window.closeCheckoutModal = () => {
+            document.getElementById('modal-checkout').classList.add('hidden');
+        };
+
+        window.setPaymentMethod = (method, el) => {
+            window.paymentMethod = method;
+            
+            document.querySelectorAll('.pay-method').forEach(e => {
+                e.classList.remove('bg-green-50', 'bg-purple-50', 'bg-blue-50', 'text-green-700', 'text-purple-700', 'text-blue-700', 'border-green-500', 'border-purple-500', 'border-blue-500', 'ring-1', 'ring-green-500', 'ring-purple-500', 'ring-blue-500');
+                e.classList.add('bg-white', 'border-gray-300');
+            });
+
+            if(method === 'dinheiro') el.classList.add('bg-green-50', 'text-green-700', 'border-green-500', 'ring-1', 'ring-green-500');
+            else if(method === 'pix') el.classList.add('bg-purple-50', 'text-purple-700', 'border-purple-500', 'ring-1', 'ring-purple-500');
+            else el.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-500', 'ring-1', 'ring-blue-500');
+
+            if(method === 'dinheiro') {
+                document.getElementById('dinheiro-panel').classList.remove('hidden');
+                calculateChange();
+            } else {
+                document.getElementById('dinheiro-panel').classList.add('hidden');
+                document.getElementById('btn-confirm-checkout').disabled = false;
+            }
+        };
+
+        window.calculateChange = () => {
+            if(window.paymentMethod !== 'dinheiro') return;
+            
+            const recebidoStr = document.getElementById('checkout-recebido').value;
+            const recebido = parseFloat(recebidoStr) || 0;
+            const trocoPanel = document.getElementById('troco-panel');
+            const btn = document.getElementById('btn-confirm-checkout');
+
+            if (recebidoStr && recebido >= window.cartTotal) {
+                const troco = recebido - window.cartTotal;
+                document.getElementById('checkout-troco').innerText = formatMoney(troco);
+                trocoPanel.classList.remove('hidden');
+                btn.disabled = false;
+            } else {
+                trocoPanel.classList.add('hidden');
+                btn.disabled = true;
+            }
+        };
+
+        window.processCheckout = async (e) => {
+            e.preventDefault();
+            if(!window.user || window.cart.length === 0) return;
+
+            const btn = document.getElementById('btn-confirm-checkout');
+            btn.disabled = true;
+            btn.innerText = 'Processando...';
+
+            const recebido = parseFloat(document.getElementById('checkout-recebido').value) || window.cartTotal;
+            const troco = window.paymentMethod === 'dinheiro' ? recebido - window.cartTotal : 0;
+
+            try {
+                // 1. Atualizar estoque
+                for (const item of window.cart) {
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'products', item.product.id);
+                    const newQty = item.product.quantity - item.qty;
+                    await updateDoc(ref, { quantity: newQty });
+                }
+
+                // 2. Registrar Venda
+                const saleData = {
+                    items: window.cart.map(i => ({ id: i.product.id, name: i.product.name, qty: i.qty, price: i.product.price })),
+                    total: window.cartTotal,
+                    paymentMethod: window.paymentMethod,
+                    amountPaid: window.paymentMethod === 'dinheiro' ? recebido : window.cartTotal,
+                    change: troco,
+                    timestamp: new Date().toISOString()
+                };
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sales'), saleData);
+
+                // 3. Limpar e notificar
+                window.cart = [];
+                closeCheckoutModal();
+                renderCart();
+                
+                let successMsg = "Venda finalizada com sucesso!";
+                if(troco > 0) successMsg += `<br/><b>Troco a devolver: ${formatMoney(troco)}</b>`;
+                showAlert(successMsg, 'success');
+
             } catch (err) {
-                showFallbackDropzone();
-                showToast("Erro ao processar o PDF selecionado.", "error");
+                console.error(err);
+                showAlert("Erro ao processar venda.");
+            } finally {
+                btn.innerText = 'Confirmar Venda';
+                btn.disabled = false;
             }
-        }
+        };
 
-        // EXTRATOR MULTI-COLUNA ROBUSTO COM CAPTURA DEFENSIVA DE ERROS
-        async function processPDFData(arrayBuffer) {
-            const statusText = document.getElementById('loader-status');
-            const detailsText = document.getElementById('loader-details');
-            const progressBar = document.getElementById('loader-bar');
-            const percentText = document.getElementById('loader-percent');
-
-            // Carrega o PDF a partir de ArrayBuffer ou TypedArray de forma compatível
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.buffer || arrayBuffer }).promise;
-            const totalPages = pdf.numPages;
-            let parsedSongs = [];
-
-            for (let i = 1; i <= totalPages; i++) {
-                try {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const items = textContent.items;
-                    if (!items || items.length === 0) continue;
-
-                    // Ordena as coordenadas verticais Y de forma altamente segura
-                    const lineYMap = {};
-                    items.forEach(item => {
-                        if (!item || item.str === undefined || item.str === null) return;
-                        if (!item.transform || item.transform.length < 6) return;
-                        
-                        const y = Math.round(item.transform[5] * 10) / 10;
-                        
-                        let foundY = Object.keys(lineYMap).find(exY => Math.abs(parseFloat(exY) - y) < 4.5);
-                        if (!foundY) {
-                            foundY = y;
-                            lineYMap[foundY] = [];
-                        }
-                        lineYMap[foundY].push(item);
-                    });
-
-                    const sortedYKeys = Object.keys(lineYMap).sort((a, b) => parseFloat(b) - parseFloat(a));
-
-                    // Montagem das strings por linha através das coordenadas horizontais X
-                    let reconstructedLines = [];
-                    sortedYKeys.forEach(yKey => {
-                        const rowItems = lineYMap[yKey].sort((a, b) => {
-                            const ax = (a.transform && a.transform[4]) || 0;
-                            const bx = (b.transform && b.transform[4]) || 0;
-                            return ax - bx;
-                        });
-                        const lineText = rowItems.map(it => String(it.str)).join('');
-                        reconstructedLines.push(lineText);
-                    });
-
-                    const pageText = reconstructedLines.join('\n');
-                    const hasCSVStructure = (pageText.match(/"/g) || []).length > 8 && (pageText.match(/,/g) || []).length > 4;
-
-                    if (hasCSVStructure) {
-                        const csvRows = parseCSV(pageText);
-                        csvRows.forEach(row => {
-                            const song = extractSongFromFields(row);
-                            if (song) parsedSongs.push(song);
-                        });
-                    }
-
-                    reconstructedLines.forEach(line => {
-                        const lineCodes = (line.match(/\b(\d{3,8})\b/g) || []);
-                        const alreadyParsed = lineCodes.some(code => parsedSongs.some(s => s.code === code));
-                        
-                        if (!alreadyParsed && lineCodes.length > 0) {
-                            const songsFromLine = parseColumnsLine(line);
-                            songsFromLine.forEach(s => {
-                                if (s && !parsedSongs.some(item => item.code === s.code)) {
-                                    parsedSongs.push(s);
-                                }
-                            });
-                        }
-                    });
-
-                    const progress = Math.round((i / totalPages) * 100);
-                    progressBar.style.width = progress + '%';
-                    percentText.innerText = progress + '%';
-                    statusText.innerText = "A indexar músicas...";
-                    detailsText.innerText = `Processadas: Pág. ${i} de ${totalPages} | ${parsedSongs.length} músicas`;
-                } catch (pageErr) {
-                    console.error(`Erro ao analisar a página ${i} (saltada para evitar travamentos):`, pageErr);
-                }
+        // ==========================
+        // SCANNER LOGIC
+        // ==========================
+        window.startScanner = (target) => {
+            window.scannerTarget = target;
+            document.getElementById('modal-scanner').classList.remove('hidden');
+            
+            if(!window.html5QrcodeScanner) {
+                window.html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} });
             }
-
-            if (parsedSongs.length > 0) {
-                // De-duplica músicas e filtra strings indefinidas
-                const finalMap = {};
-                parsedSongs.forEach(s => {
-                    if (s.code && s.title) {
-                        finalMap[s.code] = s;
-                    }
-                });
-                songs = Object.values(finalMap);
-                localStorage.setItem('brinkfest_database_precision', JSON.stringify(songs));
-            } else {
-                throw new Error("Nenhum registo de música pôde ser extraído deste catálogo.");
-            }
-        }
-
-        // TOKENIZADOR DE CSV
-        function parseCSV(text) {
-            let lines = [];
-            let row = [""];
-            let inQuotes = false;
-            for (let i = 0; i < text.length; i++) {
-                let c = text[i];
-                let next = text[i+1];
-                if (c === '"') {
-                    if (inQuotes && next === '"') {
-                        row[row.length - 1] += '"';
-                        i++;
+            
+            window.html5QrcodeScanner.render((decodedText) => {
+                if(window.scannerTarget === 'pos') {
+                    const matched = window.products.find(p => p.sku === decodedText);
+                    if(matched) {
+                        addToCart(matched.id);
                     } else {
-                        inQuotes = !inQuotes;
+                        showAlert(`Código ${decodedText} não encontrado no estoque.`);
                     }
-                } else if (c === ',' && !inQuotes) {
-                    row.push("");
-                } else if ((c === '\r' || c === '\n') && !inQuotes) {
-                    if (c === '\r' && next === '\n') { i++; }
-                    lines.push(row);
-                    row = [""];
-                } else {
-                    row[row.length - 1] += c;
+                } else if (window.scannerTarget === 'form') {
+                    document.getElementById('prod-sku').value = decodedText;
                 }
-            }
-            if (row.length > 1 || row[0] !== "") {
-                lines.push(row);
-            }
-            return lines;
-        }
-
-        // SEPARADOR DE COLUNAS PARALELAS LADO A LADO
-        function parseColumnsLine(line) {
-            const codeRegex = /\b(\d{3,8})\b/g;
-            let matches = [];
-            let match;
-            while ((match = codeRegex.exec(line)) !== null) {
-                matches.push({ code: match[1], index: match.index });
-            }
-
-            if (matches.length === 0) return [];
-            if (matches.length === 1) {
-                const parsed = parseRawLineFallback(line);
-                return parsed ? [parsed] : [];
-            }
-
-            let songsFound = [];
-            let currentStart = 0;
-
-            for (let i = 0; i < matches.length; i++) {
-                const currentMatch = matches[i];
-                const nextMatch = matches[i + 1];
-
-                let segment = "";
-                if (nextMatch) {
-                    const codeEnd = currentMatch.index + currentMatch.code.length;
-                    const nextCodeStart = nextMatch.index;
-                    const sub = line.substring(codeEnd, nextCodeStart);
-                    const absoluteSplit = codeEnd + findSplitPoint(sub);
-                    
-                    segment = line.substring(currentStart, absoluteSplit);
-                    currentStart = absoluteSplit;
-                } else {
-                    segment = line.substring(currentStart);
-                }
-
-                const parsed = parseRawLineFallback(segment);
-                if (parsed) songsFound.push(parsed);
-            }
-            return songsFound;
-        }
-
-        function findSplitPoint(sub) {
-            const transitionRegex = /[a-zà-ÿ]\s+[A-ZÀ-Ý]/g;
-            let lastTransitionIdx = -1;
-            let m;
-            while ((m = transitionRegex.exec(sub)) !== null) {
-                lastTransitionIdx = m.index + 1;
-            }
-            return lastTransitionIdx !== -1 ? lastTransitionIdx : Math.floor(sub.length / 2);
-        }
-
-        function parseRawLineFallback(line) {
-            line = line.trim();
-            const codeMatch = line.match(/\b(\d{3,8})\b/);
-            if (!codeMatch) return null;
-
-            const code = codeMatch[1];
-            const codeIndex = line.indexOf(code);
-
-            let artist = line.substring(0, codeIndex).trim();
-            let afterCode = line.substring(codeIndex + code.length).trim();
-
-            let language = "BRA";
-            const langMatch = afterCode.match(/\b(BRA|EUA|INT|ITA|JAP|ESP|FRA|ENG)\b$/i);
-            if (langMatch) {
-                language = langMatch[1].toUpperCase();
-                afterCode = afterCode.substring(0, afterCode.lastIndexOf(langMatch[1])).trim();
-            }
-
-            const words = afterCode.split(/\s+/);
-            let titleWords = [];
-            let lyricWords = [];
-            let foundLyrics = false;
-
-            for (let i = 0; i < words.length; i++) {
-                const word = words[i];
-                if (foundLyrics) {
-                    lyricWords.push(word);
-                    continue;
-                }
-                const hasLetters = /[A-ZÀ-Ýa-zà-ÿ]/.test(word);
-                const hasLowercase = /[a-zà-ÿ]/.test(word);
-
-                if (hasLetters && !hasLowercase) {
-                    titleWords.push(word);
-                } else if (titleWords.length > 0 && hasLowercase) {
-                    foundLyrics = true;
-                    lyricWords.push(word);
-                } else {
-                    titleWords.push(word);
-                }
-            }
-
-            let title = titleWords.join(' ').trim();
-            let lyrics = lyricWords.join(' ').trim() || "Início da letra indisponível";
-
-            title = title.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-            artist = artist.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-
-            if (!artist) artist = "Desconhecido";
-            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') return null;
-
-            return { code, artist, title: title.toUpperCase(), lyrics, language };
-        }
-
-        function extractSongFromFields(fields) {
-            fields = fields.map(f => f.replace(/\s+/g, ' ').trim()).filter(f => f !== "");
-            if (fields.length < 2) return null;
-
-            let code = "";
-            let codeFieldIndex = -1;
-
-            for (let i = 0; i < fields.length; i++) {
-                const match = fields[i].match(/\b(\d{3,8})\b/);
-                if (match) {
-                    code = match[1];
-                    codeFieldIndex = i;
-                    break;
-                }
-            }
-
-            if (!code) return null;
-
-            let title = fields[codeFieldIndex].replace(code, '').trim();
-            let artist = "Desconhecido";
-            if (codeFieldIndex > 0) {
-                artist = fields.slice(0, codeFieldIndex).join(' ').trim();
-            }
-
-            let remaining = fields.slice(codeFieldIndex + 1);
-            let language = "BRA";
-
-            if (remaining.length > 0) {
-                const lastField = remaining[remaining.length - 1].toUpperCase();
-                if (/^(BRA|EUA|INT|ITA|JAP|ESP|FRA|ENG)$/.test(lastField)) {
-                    language = lastField;
-                    remaining.pop();
-                }
-            }
-
-            let lyrics = remaining.filter(f => f && f !== '...').join(' ').trim() || "Início da letra indisponível";
-
-            title = title.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-            artist = artist.replace(/^[-\s(),"]+|[-\s(),"]+$/g, '').trim();
-
-            if (artist.toLowerCase() === 'interprete' || title.toLowerCase() === 'titulo' || artist.toLowerCase() === 'artist') return null;
-
-            return { code, artist, title: title.toUpperCase(), lyrics, language };
-        }
-
-        // TRANSIÇÃO PARA INTERFACE COMPLETA DE BUSCA
-        function completeLoading() {
-            const percent = document.getElementById('loader-percent');
-            const status = document.getElementById('loader-status');
-
-            percent.innerText = "100%";
-            status.innerText = "Sincronizado!";
-
-            setTimeout(() => {
-                activateSearchMode();
-            }, 500);
-        }
-
-        // GERENCIADOR DE TEMAS
-        function toggleTheme() {
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
-        }
-
-        function applyTheme(theme) {
-            currentTheme = theme;
-            localStorage.setItem('karaoke_theme', theme);
-            
-            const body = document.body;
-            const themeIcon = document.getElementById('theme-icon');
-
-            if (theme === 'light') {
-                body.classList.remove('theme-dark');
-                body.classList.add('theme-light');
-                themeIcon.setAttribute('data-lucide', 'moon');
-            } else {
-                body.classList.remove('theme-light');
-                body.classList.add('theme-dark');
-                themeIcon.setAttribute('data-lucide', 'sun');
-            }
-
-            lucide.createIcons();
-            updateLangSelectorStyles();
-            if (songs.length > 0) {
-                renderSongs();
-            }
-        }
-
-        function updateLangSelectorStyles() {
-            const isDark = currentTheme === 'dark';
-            const sel = document.getElementById('lang-selector');
-            if (!sel) return;
-            sel.className = isDark 
-                ? "bg-zinc-950 flex gap-1 p-1 rounded-lg border border-zinc-900 overflow-x-auto transition-colors duration-300"
-                : "bg-zinc-200/80 flex gap-1 p-1 rounded-lg border border-zinc-300/40 overflow-x-auto transition-colors duration-300";
-        }
-
-        // INTERAÇÃO E REGRAS DO FILTRO
-        function setLanguage(lang) {
-            currentLanguage = lang;
-            ['ALL', 'BRA', 'EUA'].forEach(l => {
-                const btn = document.getElementById(`lang-${l}`);
-                if (l === lang) {
-                    btn.className = "px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none bg-amber-500 text-black shadow";
-                } else {
-                    btn.className = "px-3.5 py-1.5 rounded text-[10px] font-bold tracking-wider transition-all select-none text-zinc-400 hover:text-zinc-200";
-                }
+                stopScanner();
+            }, (error) => {
+                // Ignore erros contínuos de leitura
             });
-            currentPage = 1;
-            renderSongs();
-        }
+        };
 
-        function handleSearch() {
-            searchQuery = document.getElementById('search-input').value;
-            currentPage = 1;
-            renderSongs();
-        }
-
-        // MOTOR DE BUSCA OTIMIZADO
-        function renderSongs() {
-            const container = document.getElementById('songs-list-container');
-            const paginationBox = document.getElementById('pagination-box');
-            const artistAlert = document.getElementById('artist-alert');
-
-            let listToRender = [];
-            const normQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-            const terms = normQuery.split(/\s+/).filter(t => t.length > 0);
-
-            let isArtistSearch = false;
-            if (normQuery.length >= 3) {
-                const artistMatches = songs.filter(s => {
-                    const normArtist = (s.artist || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                    return normArtist.includes(normQuery);
-                });
-
-                if (artistMatches.length > 0) {
-                    isArtistSearch = true;
-                    listToRender = artistMatches;
-                }
+        window.stopScanner = () => {
+            if(window.html5QrcodeScanner) {
+                window.html5QrcodeScanner.clear().catch(e => console.error(e));
             }
+            document.getElementById('modal-scanner').classList.add('hidden');
+        };
 
-            if (!isArtistSearch) {
-                artistAlert.classList.add('hidden');
-                artistAlert.style.display = 'none';
-                
-                listToRender = songs.filter(song => {
-                    if (currentLanguage !== 'ALL') {
-                        if (currentLanguage === 'BRA' && song.language !== 'BRA') return false;
-                        if (currentLanguage === 'EUA' && song.language !== 'EUA') return false;
-                    }
+        // Inicia na aba de estoque
+        switchTab('estoque');
 
-                    if (terms.length > 0) {
-                        const normTitle = (song.title || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const normArtist = (song.artist || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const normLyrics = (song.lyrics || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const normCode = String(song.code || '');
-                        
-                        return terms.every(term => {
-                            return normTitle.includes(term) || 
-                                   normArtist.includes(term) || 
-                                   normLyrics.includes(term) || 
-                                   normCode.includes(term);
-                        });
-                    }
-                    return true;
-                });
-            } else {
-                artistAlert.classList.remove('hidden');
-                artistAlert.style.display = 'inline-flex';
-            }
-
-            listToRender.sort((a, b) => (a.artist || '').localeCompare(b.artist || '') || (a.title || '').localeCompare(b.title || ''));
-
-            const totalResults = listToRender.length;
-            let paginatedList = [];
-            
-            if (isArtistSearch) {
-                paginatedList = listToRender;
-                paginationBox.classList.add('hidden');
-            } else {
-                paginationBox.classList.remove('hidden');
-                const totalPages = Math.ceil(totalResults / itemsPerPage);
-
-                if (currentPage > totalPages && totalPages > 0) {
-                    currentPage = totalPages;
-                }
-
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
-
-                paginatedList = listToRender.slice(startIndex, endIndex);
-
-                document.getElementById('pag-start-index').innerText = totalResults > 0 ? startIndex + 1 : 0;
-                document.getElementById('pag-end-index').innerText = endIndex;
-                document.getElementById('pag-total').innerText = totalResults;
-
-                renderPaginationControls(totalPages);
-            }
-
-            document.getElementById('results-count').innerText = `${totalResults} resultados encontrados`;
-            buildListHTML(paginatedList, container, terms);
-        }
-
-        // CONTROLES DE PAGINAÇÃO DINÂMICOS
-        function renderPaginationControls(totalPages) {
-            const container = document.getElementById('pagination-controls-container');
-            container.innerHTML = '';
-
-            if (totalPages <= 1) return;
-
-            const isDark = currentTheme === 'dark';
-            const btnBaseClass = "h-8 px-3 rounded-lg text-xs font-bold transition-all duration-200 border flex items-center justify-center select-none cursor-pointer";
-            const btnActiveDark = "bg-amber-500 border-amber-500 text-black";
-            const btnActiveLight = "bg-amber-500 border-amber-500 text-black shadow-sm";
-            const btnInactiveDark = "bg-zinc-950 border-zinc-900 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700";
-            const btnInactiveLight = "bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300";
-
-            const btnActive = isDark ? btnActiveDark : btnActiveLight;
-            const btnInactive = isDark ? btnInactiveDark : btnInactiveLight;
-
-            // Botão Anterior
-            const prevBtn = document.createElement('button');
-            prevBtn.className = `${btnBaseClass} ${btnInactive} ${currentPage === 1 ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`;
-            prevBtn.innerHTML = '<i data-lucide="chevron-left" class="w-3.5 h-3.5 mr-0.5"></i> <span class="hidden sm:inline">Anterior</span>';
-            prevBtn.onclick = () => changePage(currentPage - 1);
-            container.appendChild(prevBtn);
-
-            const pagesDesktopContainer = document.createElement('div');
-            pagesDesktopContainer.className = "hidden sm:flex items-center gap-1";
-
-            const delta = 1;
-            const range = [];
-            const rangeWithDots = [];
-            let l;
-
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
-                    range.push(i);
-                }
-            }
-
-            for (let i of range) {
-                if (l) {
-                    if (i - l === 2) {
-                        rangeWithDots.push(l + 1);
-                    } else if (i - l > 2) {
-                        rangeWithDots.push('...');
-                    }
-                }
-                rangeWithDots.push(i);
-                l = i;
-            }
-
-            rangeWithDots.forEach(p => {
-                if (p === '...') {
-                    const dotsSpan = document.createElement('span');
-                    dotsSpan.className = "px-2 text-xs text-zinc-600 select-none";
-                    dotsSpan.innerText = '...';
-                    pagesDesktopContainer.appendChild(dotsSpan);
-                } else {
-                    const pageBtn = document.createElement('button');
-                    pageBtn.className = `${btnBaseClass} ${p === currentPage ? btnActive : btnInactive} min-w-[32px] px-1`;
-                    pageBtn.innerText = p;
-                    pageBtn.onclick = () => changePage(p);
-                    pagesDesktopContainer.appendChild(pageBtn);
-                }
-            });
-
-            container.appendChild(pagesDesktopContainer);
-
-            // Celular Indicator
-            const mobileIndicator = document.createElement('span');
-            mobileIndicator.className = "inline-flex sm:hidden text-xs font-extrabold text-zinc-400 bg-zinc-950/40 border border-zinc-900/40 px-3 py-1.5 rounded-lg";
-            mobileIndicator.innerText = `${currentPage} / ${totalPages}`;
-            container.appendChild(mobileIndicator);
-
-            // Seguinte
-            const nextBtn = document.createElement('button');
-            nextBtn.className = `${btnBaseClass} ${btnInactive} ${currentPage === totalPages ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`;
-            nextBtn.innerHTML = '<span class="hidden sm:inline">Seguinte</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5 ml-0.5"></i>';
-            nextBtn.onclick = () => changePage(currentPage + 1);
-            container.appendChild(nextBtn);
-
-            lucide.createIcons();
-        }
-
-        function changePage(page) {
-            currentPage = page;
-            renderSongs();
-            document.getElementById('search-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        // CARDS HTML RENDER
-        function buildListHTML(list, container, terms) {
-            if (list.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 song-card border rounded-xl">
-                        <i data-lucide="info" class="w-6 h-6 text-zinc-500 mx-auto mb-2"></i>
-                        <p class="text-xs text-zinc-500 font-semibold uppercase tracking-wider">Música não encontrada</p>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            container.innerHTML = list.map(song => {
-                const flag = song.language === 'BRA' ? '🇧🇷' : '🇺🇸';
-                
-                let titleHTML = song.title || '';
-                let artistHTML = song.artist || '';
-                let lyricsHTML = song.lyrics || '';
-                let codeHTML = song.code || '';
-
-                if (terms.length > 0) {
-                    terms.forEach(term => {
-                        const regex = new RegExp(`(${term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
-                        titleHTML = titleHTML.replace(regex, `<mark>$1</mark>`);
-                        artistHTML = artistHTML.replace(regex, `<mark>$1</mark>`);
-                        lyricsHTML = lyricsHTML.replace(regex, `<mark>$1</mark>`);
-                        codeHTML = codeHTML.replace(regex, `<mark>$1</mark>`);
-                    });
-                }
-
-                return `
-                    <div class="song-card border px-4 py-3.5 rounded-xl flex items-center justify-between gap-3 w-full box-border transition-colors duration-250">
-                        <div class="flex items-center gap-4 min-w-0 w-full">
-                            <div class="h-12 w-16 bg-zinc-950 border border-zinc-900/40 flex flex-col justify-center items-center rounded-lg shrink-0 select-all" title="Copiar código">
-                                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">CÓD</span>
-                                <span class="text-sm font-black text-amber-500 tracking-wider mt-0.5">${codeHTML}</span>
-                            </div>
-
-                            <div class="min-w-0 w-full">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <h4 class="text-xs font-black tracking-wide uppercase truncate max-w-full leading-tight">${titleHTML}</h4>
-                                    <span class="text-[8px] bg-zinc-900 text-zinc-500 border border-zinc-800 px-1.5 py-0.2 rounded font-bold">${flag} ${song.language}</span>
-                                </div>
-                                <p class="text-xs font-bold text-zinc-400 truncate mt-0.5">${artistHTML}</p>
-                                <p class="text-[10px] italic text-zinc-500 truncate mt-0.5">"${lyricsHTML}"</p>
-                            </div>
-                        </div>
-
-                        <div class="shrink-0">
-                            <button onclick="copyCode('${song.code}')" class="p-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 border border-zinc-900 rounded-lg transition-all" title="Copiar código">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            lucide.createIcons();
-        }
-
-        // COPIAR CÓDIGO
-        function copyCode(code) {
-            const tempInput = document.createElement("input");
-            tempInput.value = code;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            showToast(`Código ${code} copiado! 📋`, "success");
-        }
-
-        // RECONHECIMENTO DE VOZ INTEGRADO (Web Speech API)
-        function startVoiceSearch() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                showToast("Pesquisa por voz indisponível neste navegador.", "error");
-                return;
-            }
-
-            const rec = new SpeechRecognition();
-            rec.lang = 'pt-BR';
-            
-            const micBtn = document.getElementById('voice-btn');
-            micBtn.classList.add('text-amber-500', 'scale-110');
-            showToast("A ouvir...", "info");
-
-            rec.onresult = function(e) {
-                const voiceVal = e.results[0][0].transcript;
-                document.getElementById('search-input').value = voiceVal;
-                handleSearch();
-            };
-
-            rec.onerror = function() {
-                showToast("Não consegui ouvir claramente.", "error");
-            };
-
-            rec.onend = function() {
-                micBtn.classList.remove('text-amber-500', 'scale-110');
-            };
-
-            rec.start();
-        }
-
-        // TOASTS DE ALERTA ADAPTATIVOS
-        function showToast(msg, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            let bg = "bg-zinc-950 border-zinc-850 text-zinc-200 shadow-xl";
-            let icon = "info";
-            
-            if (type === 'success') {
-                bg = "bg-zinc-950 border-amber-500/20 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.05)]";
-                icon = "check-circle-2";
-            } else if (type === 'error') {
-                bg = "bg-zinc-950 border-rose-950 text-zinc-400";
-                icon = "alert-circle";
-            }
-
-            toast.className = `p-4 rounded-xl border flex items-center gap-3 transition-all duration-300 translate-y-12 opacity-0 pointer-events-auto ${bg} max-w-full`;
-            toast.innerHTML = `
-                <span class="shrink-0">
-                    <i data-lucide="${icon}" class="w-4 h-4"></i>
-                </span>
-                <span class="text-[11px] font-bold uppercase tracking-wider break-words leading-relaxed">${msg}</span>
-            `;
-
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-12', 'opacity-0');
-            }, 50);
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-12', 'opacity-0');
-                setTimeout(() => { toast.remove(); }, 300);
-            }, 3000);
-        }
     </script>
 </body>
 </html>
-
