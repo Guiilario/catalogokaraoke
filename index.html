@@ -286,17 +286,18 @@
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
-        // COLOQUE AS CREDENCIAIS DO SEU FIREBASE AQUI
+        // CREDENCIAIS DO SEU FIREBASE
         // ==========================================
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY_AQUI",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            projectId: "SEU_PROJETO",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "SEU_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyDM6eLPCIO6NAwv6jRRmSh3YppohWcFILM",
+            authDomain: "sistema-mini-mercado.firebaseapp.com",
+            projectId: "sistema-mini-mercado",
+            storageBucket: "sistema-mini-mercado.firebasestorage.app",
+            messagingSenderId: "956443578773",
+            appId: "1:956443578773:web:202d968d3787ed7bdba69c",
+            measurementId: "G-RMY289M8X1"
         };
-        const appId = 'quitanda-manager';
+        const appId = 'sistema-mini-mercado'; // ID para a pasta no banco de dados
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
