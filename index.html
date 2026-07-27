@@ -247,11 +247,18 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config (Fallback para mock caso não injetado no ambiente)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            projectId: "demo-project"
+        // ==========================================
+        // COLOQUE AS CREDENCIAIS DO SEU FIREBASE AQUI
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_SENDER_ID",
+            appId: "SEU_APP_ID"
         };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-market-app';
+        const appId = 'quitanda-manager';
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -278,14 +285,10 @@
         // Inicialização de Autenticação
         const initAuth = async () => {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (err) {
                 console.error("Erro de Auth:", err);
-                showAlert("Erro ao autenticar no banco de dados.", "error");
+                showAlert("Erro ao autenticar. Verifique suas chaves do Firebase e se o Login Anônimo está ativado.", "error");
             }
         };
 
