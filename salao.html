@@ -439,20 +439,25 @@
             showModal("Gerenciar Horário", body + btns);
         };
 
-        window.openDayAdmin = () => {
+        window.openDayAdmin = (existingId = null) => {
             const dateStr = document.getElementById('admin-date').value;
+            const idArg = existingId ? `'${existingId}'` : 'null';
             const html = `
                 <p class="text-neutral-400 text-sm mb-4">Insira o saldo inicial na gaveta (Troco) para o dia ${dateStr.split('-').reverse().join('/')}.</p>
                 <input type="number" id="saldo-inicial" placeholder="R$ 0,00" class="w-full p-4 bg-neutral-900 border border-neutral-700 rounded-xl text-white text-2xl font-bold mb-6 text-center outline-none focus:border-amber-500">
-                <button onclick="confirmOpenDay('${dateStr}')" class="w-full bg-amber-500 text-black font-black py-4 rounded-xl">Abrir Caixa</button>
+                <button onclick="confirmOpenDay('${dateStr}', ${idArg})" class="w-full bg-amber-500 text-black font-black py-4 rounded-xl">Abrir Caixa</button>
             `;
             showModal("Abrir o Dia", html);
         };
 
-        window.confirmOpenDay = async (dateStr) => {
+        window.confirmOpenDay = async (dateStr, existingId) => {
             const val = parseFloat(document.getElementById('saldo-inicial').value || 0);
             try {
-                await addDoc(collection(db, 'salao_caixa'), { date: dateStr, initialBalance: val, status: 'open', openedAt: Date.now() });
+                if (existingId) {
+                    await updateDoc(doc(db, 'salao_caixa', existingId), { initialBalance: val, status: 'open', reopenedAt: Date.now() });
+                } else {
+                    await addDoc(collection(db, 'salao_caixa'), { date: dateStr, initialBalance: val, status: 'open', openedAt: Date.now() });
+                }
                 closeModal();
             } catch(e) { handleDBError(e); }
         };
@@ -499,7 +504,7 @@
                 
                 <div class="flex flex-col w-full max-w-sm gap-4">
                     <button onclick="nav('clientLogin')" class="bg-amber-500 text-black font-black py-5 px-6 rounded-2xl hover:-translate-y-1 transition transform uppercase tracking-wider">Agendar Corte</button>
-                    <button onclick="nav('adminLogin')" class="bg-transparent border border-neutral-800 text-neutral-500 font-bold py-4 px-6 rounded-2xl hover:text-white transition">ÁREA DO BARBEIRO</button>
+                    <button onclick="nav('adminLogin')" class="bg-transparent border border-neutral-800 text-neutral-500 font-bold py-4 px-6 rounded-2xl hover:text-white transition">Acesso Barbeiro</button>
                 </div>
             </div>
         `;
@@ -568,10 +573,10 @@
             }
 
             const dayApps = appointments.filter(a => a.date === dateStr);
-            const caixaForDay = cashRegisters.find(c => c.date === dateStr);
             
-            if(!caixaForDay || caixaForDay.status !== 'open') {
-                gridEl.innerHTML = `<div class="text-center py-10 text-neutral-500 font-bold bg-neutral-900 rounded-xl border border-neutral-800">A agenda deste dia ainda não foi liberada.</div>`;
+            const gridEl = document.getElementById('client-grid');
+            if(dayOfWeek === 0 || dayOfWeek === 1) {
+                gridEl.innerHTML = `<div class="text-center py-10 text-neutral-500 font-bold bg-neutral-900 rounded-xl">O salão não abre de Domingo e Segunda.</div>`;
                 return;
             }
 
@@ -661,30 +666,29 @@
             const totalEmCaixa = caixaForDay ? (caixaForDay.initialBalance + faturamento) : 0;
 
             const metricsEl = document.getElementById('admin-dashboard-metrics');
+            
             if(!caixaForDay || caixaForDay.status === 'closed') {
                 metricsEl.innerHTML = `
-                    <div class="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl text-center">
-                        <h3 class="text-amber-500 font-black text-2xl uppercase tracking-widest mb-2">${caixaForDay ? 'Caixa Fechado' : 'Caixa Fechado'}</h3>
-                        <p class="text-neutral-400 text-sm mb-6">${caixaForDay ? 'Os trabalhos deste dia foram encerrados.' : 'Abra o dia para permitir agendamentos online.'}</p>
-                        ${!caixaForDay ? `<button onclick="openDayAdmin()" class="bg-amber-500 text-black font-black px-8 py-4 rounded-xl shadow-lg uppercase tracking-wider">Abrir o Dia</button>` : ''}
+                    <div class="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl text-center mb-6">
+                        <h3 class="text-amber-500 font-black text-2xl uppercase tracking-widest mb-2">Caixa Fechado</h3>
+                        <p class="text-neutral-400 text-sm mb-6">Faturamento do dia: <span class="text-green-500 font-bold">${formatCurrency(faturamento)}</span></p>
+                        <button onclick="openDayAdmin(${caixaForDay ? `'${caixaForDay.id}'` : null})" class="bg-amber-500 text-black font-black px-8 py-4 rounded-xl shadow-lg uppercase tracking-wider">Abrir Caixa</button>
                     </div>
                 `;
-                document.getElementById('admin-grid').innerHTML = '';
-                return;
+            } else {
+                metricsEl.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+                        <div class="flex-1 bg-neutral-900 border border-neutral-800 p-5 rounded-2xl">
+                            <p class="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-1">Total na Gaveta (Caixa)</p>
+                            <p class="text-3xl font-black text-green-500">${formatCurrency(totalEmCaixa)}</p>
+                        </div>
+                        <div class="flex-1 bg-neutral-900 border border-neutral-800 p-5 rounded-2xl flex flex-col justify-center items-start">
+                            <p class="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-2">Ações do Dia</p>
+                            <button onclick="closeDayAdmin('${caixaForDay.id}', '${dateStr}', ${faturamento}, ${totalEmCaixa})" class="text-red-500 border border-red-900/50 hover:bg-red-900/20 font-bold px-4 py-2 text-sm rounded-lg transition uppercase tracking-wider">Fechar Caixa</button>
+                        </div>
+                    </div>
+                `;
             }
-
-            metricsEl.innerHTML = `
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1 bg-neutral-900 border border-neutral-800 p-5 rounded-2xl">
-                        <p class="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-1">Total na Gaveta (Caixa)</p>
-                        <p class="text-3xl font-black text-green-500">${formatCurrency(totalEmCaixa)}</p>
-                    </div>
-                    <div class="flex-1 bg-neutral-900 border border-neutral-800 p-5 rounded-2xl flex flex-col justify-center items-start">
-                        <p class="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-2">Ações do Dia</p>
-                        <button onclick="closeDayAdmin('${caixaForDay.id}', '${dateStr}', ${faturamento}, ${totalEmCaixa})" class="text-red-500 border border-red-900/50 hover:bg-red-900/20 font-bold px-4 py-2 text-sm rounded-lg transition uppercase tracking-wider">Fechar Dia</button>
-                    </div>
-                </div>
-            `;
 
             let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">`;
             TIME_SLOTS.forEach(time => {
