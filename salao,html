@@ -52,7 +52,7 @@
                     <p class="text-xs text-amber-500 tracking-wider uppercase">Alemoa</p>
                 </div>
             </div>
-            <button id="btn-logout" class="hidden text-xs bg-neutral-800 border border-neutral-700 text-gray-300 px-3 py-1.5 rounded hover:bg-neutral-700 transition" onclick="navigate('home')">Sair</button>
+            <button id="btn-logout" class="hidden text-xs bg-neutral-800 border border-neutral-700 text-gray-300 px-3 py-1.5 rounded hover:bg-neutral-700 transition" onclick="doLogout()">Sair</button>
         </div>
     </header>
 
@@ -68,24 +68,51 @@
                 <p class="text-neutral-400">Agende seu horário de forma rápida e prática.</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <button onclick="navigate('user')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">SOU CLIENTE</button>
-                <button onclick="navigate('admin_login')" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">ADMINISTRADOR</button>
+                <button onclick="goToClient()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">SOU CLIENTE</button>
+                <button onclick="goToAdmin()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">ADMINISTRADOR</button>
             </div>
         </div>
 
+        <!-- Tela de Autenticação do Cliente -->
+        <div id="view-client-auth" class="hidden max-w-md mx-auto mt-10">
+            <div class="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 shadow-2xl">
+                <h3 class="text-2xl font-black text-white mb-6 text-center">Acesso do Cliente</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-neutral-400 mb-1">E-mail</label>
+                        <input type="email" id="client-email" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-neutral-400 mb-1">Senha</label>
+                        <input type="password" id="client-pass" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="handleClientLogin()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-lg transition">ENTRAR</button>
+                        <button onclick="handleClientRegister()" class="flex-1 bg-neutral-800 border border-neutral-700 text-amber-500 hover:bg-neutral-700 font-black py-3 rounded-lg transition">CRIAR CONTA</button>
+                    </div>
+                    <button onclick="navigate('home')" class="w-full mt-2 text-neutral-500 hover:text-white text-sm font-bold py-2">Voltar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Autenticação do Admin -->
         <div id="view-admin-login" class="hidden max-w-md mx-auto mt-10">
             <div class="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 shadow-2xl">
                 <h3 class="text-2xl font-black text-white mb-6 text-center">Painel Restrito</h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-bold text-neutral-400 mb-1">Usuário</label>
-                        <input type="text" id="login-user" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <label class="block text-sm font-bold text-neutral-400 mb-1">E-mail do Administrador</label>
+                        <input type="email" id="admin-email" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-neutral-400 mb-1">Senha</label>
-                        <input type="password" id="login-pass" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <input type="password" id="admin-pass" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
                     </div>
-                    <button onclick="handleLogin()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-lg mt-2 transition">ENTRAR</button>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="handleAdminAuth(false)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-lg transition">ENTRAR</button>
+                        <button onclick="handleAdminAuth(true)" class="flex-1 bg-neutral-800 border border-neutral-700 text-neutral-400 hover:bg-neutral-700 font-bold py-3 rounded-lg transition text-sm">Criar Acesso</button>
+                    </div>
+                    <button onclick="navigate('home')" class="w-full mt-2 text-neutral-500 hover:text-white text-sm font-bold py-2">Voltar</button>
                 </div>
             </div>
         </div>
@@ -169,14 +196,37 @@
             <h3 id="modal-title" class="text-xl font-black text-amber-500 mb-4 border-b border-neutral-800 pb-2">Título</h3>
             <div id="modal-body" class="text-white space-y-4"></div>
             <div id="modal-footer" class="mt-6 flex gap-3"></div>
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-neutral-500 hover:text-white">✕</button>
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-neutral-500 hover:text-white">✕</button>
+    </div>
+</div>
+
+<!-- AVISO DE ERRO FIREBASE / GITHUB PAGES -->
+<div id="setup-error-backdrop" class="fixed inset-0 bg-black bg-opacity-90 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-neutral-900 border-2 border-red-600 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
+        <h3 class="text-2xl font-black text-red-500 mb-4 border-b border-neutral-800 pb-2">⚠️ Erro de Permissão no Firebase</h3>
+        <div class="text-white space-y-4 text-sm">
+            <p>O aplicativo tentou conectar ao seu banco de dados, mas foi bloqueado pelas regras de segurança do Firebase.</p>
+            <p class="font-bold text-amber-500">Como corrigir (Passo a Passo):</p>
+            <ol class="list-decimal pl-5 space-y-2 text-neutral-300">
+                <li>Vá no seu <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-400 underline">Console do Firebase</a> e acesse seu projeto <b>desafio-7-dias-d3680</b>.</li>
+                <li>No menu esquerdo, clique em <b>Firestore Database</b> e vá na aba <b>Regras (Rules)</b>.</li>
+                <li>Mude a regra para permitir leitura e escrita:<br>
+                    <code class="block bg-black p-2 mt-1 border border-neutral-700 rounded text-green-400 font-mono">allow read, write: if true;</code>
+                </li>
+                <li>No menu esquerdo, vá em <b>Authentication</b> > Aba <b>Settings (Configurações)</b> > <b>Authorized domains</b> e adicione seu domínio do GitHub Pages (ex: <i>seu-usuario.github.io</i>).</li>
+                <li>Ainda em Authentication, na aba <b>Sign-in method</b>, ative a opção <b>Provedor de E-mail/Senha</b>.</li>
+            </ol>
+        </div>
+        <div class="mt-6">
+            <button onclick="document.getElementById('setup-error-backdrop').classList.add('hidden')" class="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-bold py-3 rounded-lg transition">Entendi, vou configurar!</button>
         </div>
     </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuração do Firebase fornecida pelo usuário
         const firebaseConfig = {
@@ -230,7 +280,7 @@
             const viewEl = document.getElementById(`view-${view.replace('_', '-')}`);
             if(viewEl) viewEl.classList.remove('hidden');
             
-            document.getElementById('btn-logout').classList.toggle('hidden', view === 'home' || view === 'loading');
+            document.getElementById('btn-logout').classList.toggle('hidden', ['home', 'loading', 'client_auth', 'admin_login'].includes(view));
 
             if (view === 'user') {
                 if(!document.getElementById('client-date').value) {
@@ -248,65 +298,122 @@
         };
 
         // --- Inicialização ---
-        let isSetup = false;
-        async function init() {
-            // Fallback de Autenticação para evitar erro auth/admin-restricted-operation
-            let localUid = localStorage.getItem('salao_uid');
-            if (!localUid) {
-                localUid = 'guest_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('salao_uid', localUid);
+    let isSetup = false;
+    async function init() {
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (!isSetup) {
+                isSetup = true;
+                setupRealtime();
+                navigate('home');
             }
+        });
+    }
 
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user || { uid: localUid };
-                if (!isSetup) {
-                    isSetup = true;
-                    setupRealtime();
-                    navigate('home');
-                }
-            });
+    // --- Autenticação com Email e Senha ---
+    window.doLogout = async () => {
+        await signOut(auth);
+        currentUser = null;
+        navigate('home');
+    };
 
-            try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                console.warn("Aviso Auth: Autenticação anônima bloqueada. Prosseguindo com UID local.", e);
-                currentUser = { uid: localUid };
-                if (!isSetup) {
-                    isSetup = true;
-                    setupRealtime();
-                    navigate('home');
-                }
+    window.goToClient = () => {
+        if (currentUser) navigate('user');
+        else navigate('client_auth');
+    };
+
+    window.goToAdmin = () => {
+        if (currentUser) navigate('admin_dashboard');
+        else navigate('admin_login');
+    };
+
+    const handleAuthError = (err) => {
+        let msg = "Ocorreu um erro na autenticação.";
+        if (err.code === 'auth/invalid-email') msg = "E-mail inválido.";
+        if (err.code === 'auth/user-not-found') msg = "Usuário não encontrado. Tente criar uma conta primeiro.";
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = "Credenciais incorretas.";
+        if (err.code === 'auth/email-already-in-use') msg = "Este e-mail já está em uso.";
+        if (err.code === 'auth/weak-password') msg = "A senha deve ter no mínimo 6 caracteres.";
+        if (err.message && !msg.includes('auth')) msg += `<br><span class="text-xs text-neutral-500">${err.message}</span>`;
+        
+        showModal("Erro de Acesso", `<p class="text-white">${msg}</p>`, `<button onclick="closeModal()" class="w-full bg-amber-500 text-black font-bold py-2 rounded-lg">OK</button>`);
+    };
+
+    window.handleClientLogin = async () => {
+        const e = document.getElementById('client-email').value;
+        const p = document.getElementById('client-pass').value;
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
+        try {
+            await signInWithEmailAndPassword(auth, e, p);
+            document.getElementById('client-email').value = '';
+            document.getElementById('client-pass').value = '';
+            navigate('user');
+        } catch(err) { handleAuthError(err); }
+    };
+
+    window.handleClientRegister = async () => {
+        const e = document.getElementById('client-email').value;
+        const p = document.getElementById('client-pass').value;
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
+        try {
+            await createUserWithEmailAndPassword(auth, e, p);
+            document.getElementById('client-email').value = '';
+            document.getElementById('client-pass').value = '';
+            navigate('user');
+        } catch(err) { handleAuthError(err); }
+    };
+
+    window.handleAdminAuth = async (isRegister) => {
+        const e = document.getElementById('admin-email').value;
+        const p = document.getElementById('admin-pass').value;
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
+        try {
+            if(isRegister) {
+                await createUserWithEmailAndPassword(auth, e, p);
+            } else {
+                await signInWithEmailAndPassword(auth, e, p);
             }
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-pass').value = '';
+            navigate('admin_dashboard');
+        } catch(err) { handleAuthError(err); }
+    };
+
+    let firstLoad = true;
+    let prevApptCount = 0;
+
+    function checkFirebaseError(err) {
+        console.error("Firebase Erro:", err);
+        if(err.code === 'permission-denied') {
+            document.getElementById('setup-error-backdrop').classList.remove('hidden');
         }
+    }
 
-        let firstLoad = true;
-        let prevApptCount = 0;
+    function setupRealtime() {
+        const apptRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
+        const setRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'settings');
 
-        function setupRealtime() {
-            const apptRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
-            const setRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'settings');
+        onSnapshot(query(apptRef), (snap) => {
+            appointments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Beep para novos agendamentos (Apenas para Admin)
+            if(!firstLoad && currentView === 'admin_dashboard' && appointments.length > prevApptCount) {
+                playBeep();
+            }
+            prevApptCount = appointments.length;
+            firstLoad = false;
 
-            onSnapshot(query(apptRef), (snap) => {
-                appointments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                
-                // Beep para novos agendamentos (Apenas para Admin)
-                if(!firstLoad && currentView === 'admin_dashboard' && appointments.length > prevApptCount) {
-                    playBeep();
-                }
-                prevApptCount = appointments.length;
-                firstLoad = false;
+            if (currentView === 'user') renderUserView();
+            if (currentView === 'admin_dashboard') renderAdminDashboard();
+        }, checkFirebaseError);
 
-                if (currentView === 'user') renderUserView();
-                if (currentView === 'admin_dashboard') renderAdminDashboard();
-            }, (err) => console.error("Erro Snapshot Appointments:", err));
+        onSnapshot(query(setRef), (snap) => {
+            settings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (currentView === 'user') renderUserView();
+            if (currentView === 'admin_dashboard') renderAdminDashboard();
+        }, checkFirebaseError);
 
-            onSnapshot(query(setRef), (snap) => {
-                settings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (currentView === 'user') renderUserView();
-                if (currentView === 'admin_dashboard') renderAdminDashboard();
-            }, (err) => console.error("Erro Snapshot Settings:", err));
-
-            // Loop global para atualizações de cronômetro
+        // Loop global para atualizações de cronômetro
             if(realtimeLoopInterval) clearInterval(realtimeLoopInterval);
             realtimeLoopInterval = setInterval(() => {
                 if (currentView === 'user') checkClientAlerts();
@@ -459,14 +566,15 @@
         };
 
         window.confirmBooking = async (time, name, total) => {
-            const dateStr = document.getElementById('client-date').value;
-            const ref = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
+        const dateStr = document.getElementById('client-date').value;
+        const ref = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
+        try {
             await addDoc(ref, {
                 date: dateStr,
                 time: time,
                 services: [...clientSelectedServices],
                 totalPrice: total,
-                status: 'booked', // booked -> called -> started -> completed / skipped
+                status: 'booked',
                 customerName: name,
                 userId: currentUser.uid,
                 createdAt: Date.now()
@@ -475,15 +583,29 @@
             document.getElementById('client-name').value = '';
             closeModal();
             renderUserView();
-        };
+        } catch (err) {
+            checkFirebaseError(err);
+            closeModal();
+        }
+    };
 
-        window.cancelSlot = (id) => {
-            showModal("Cancelar", "Tem certeza que deseja cancelar?", 
-            `<button onclick="closeModal()" class="flex-1 bg-neutral-700 text-white py-2 rounded-lg">Não</button>
-             <button onclick="deleteDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${id}')); closeModal();" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg">Sim, Cancelar</button>`);
-        };
+    window.cancelSlot = (id) => {
+        showModal("Cancelar", "Tem certeza que deseja cancelar?", 
+        `<button onclick="closeModal()" class="flex-1 bg-neutral-700 text-white py-2 rounded-lg">Não</button>
+         <button onclick="tryDelete('${id}')" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg">Sim, Cancelar</button>`);
+    };
 
-        // --- Realtime Client Alerts ---
+    window.tryDelete = async (id) => {
+        try {
+            await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', id));
+            closeModal();
+        } catch (err) {
+            checkFirebaseError(err);
+            closeModal();
+        }
+    };
+
+    // --- Realtime Client Alerts ---
         function checkClientAlerts() {
             const area = document.getElementById('client-notification-area');
             if(!area || currentView !== 'user') return;
@@ -555,18 +677,6 @@
         }
 
         // --- LÓGICA DO ADMIN ---
-        window.handleLogin = () => {
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
-            if(u === 'admin' && p === 'admin123') {
-                document.getElementById('login-user').value = '';
-                document.getElementById('login-pass').value = '';
-                navigate('admin_dashboard');
-            } else {
-                alert("Dados incorretos");
-            }
-        };
-
         window.renderAdminDashboard = () => {
             const dateStr = document.getElementById('admin-date').value;
             const closed = isDayClosed(dateStr);
@@ -664,16 +774,20 @@
         }
 
         window.toggleDayStatus = async () => {
-            const dateStr = document.getElementById('admin-date').value;
-            const setting = settings.find(s => s.type === 'closed_day' && s.date === dateStr);
+        const dateStr = document.getElementById('admin-date').value;
+        const setting = settings.find(s => s.type === 'closed_day' && s.date === dateStr);
+        try {
             if(setting) {
                 await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', setting.id));
             } else {
                 await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'settings'), { type: 'closed_day', date: dateStr });
             }
-        };
+        } catch (err) {
+            checkFirebaseError(err);
+        }
+    };
 
-        window.adminManageSlot = (appIdStr) => {
+    window.adminManageSlot = (appIdStr) => {
             const app = appointments.find(a => a.id === appIdStr);
             if(!app) return;
 
@@ -694,28 +808,38 @@
             let btns = '';
 
             if (app.status === 'booked') {
-                btns = `
-                    <button onclick="updateDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${app.id}'), {status: 'called', calledAt: Date.now()}); closeModal();" class="w-full bg-orange-500 text-white font-black py-3 rounded-lg mb-2">CHAMAR CLIENTE (2 MIN)</button>
-                    <button onclick="deleteDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${app.id}')); closeModal();" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Desmarcar</button>
-                    <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-                `;
-            } else if (app.status === 'called') {
-                btns = `
-                    <button onclick="updateDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${app.id}'), {status: 'started', startedAt: Date.now()}); closeModal();" class="w-full bg-red-600 text-white font-black py-3 rounded-lg mb-2">INICIAR CORTE AGORA</button>
-                    <button onclick="deleteDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${app.id}')); closeModal();" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Cliente não apareceu (Pular)</button>
-                    <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-                `;
-            } else if (app.status === 'started') {
-                btns = `
-                    <button onclick="updateDoc(doc(db, 'artifacts', '${APP_ID}', 'public', 'data', 'appointments', '${app.id}'), {status: 'completed', completedAt: Date.now()}); closeModal();" class="w-full bg-green-600 text-white font-black py-4 rounded-lg mb-2">FINALIZAR E RECEBER</button>
-                    <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-                `;
-            }
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'called', calledAt: Date.now()})" class="w-full bg-orange-500 text-white font-black py-3 rounded-lg mb-2">CHAMAR CLIENTE (2 MIN)</button>
+                <button onclick="tryDelete('${app.id}')" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Desmarcar</button>
+                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
+            `;
+        } else if (app.status === 'called') {
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'started', startedAt: Date.now()})" class="w-full bg-red-600 text-white font-black py-3 rounded-lg mb-2">INICIAR CORTE AGORA</button>
+                <button onclick="tryDelete('${app.id}')" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Cliente não apareceu (Pular)</button>
+                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
+            `;
+        } else if (app.status === 'started') {
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'completed', completedAt: Date.now()})" class="w-full bg-green-600 text-white font-black py-4 rounded-lg mb-2">FINALIZAR E RECEBER</button>
+                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
+            `;
+        }
 
-            showModal("Gerenciar Horário", body, `<div class="flex flex-col w-full">${btns}</div>`);
-        };
+        showModal("Gerenciar Horário", body, `<div class="flex flex-col w-full">${btns}</div>`);
+    };
 
-        window.adminBookSlot = (time) => {
+    window.tryUpdate = async (id, data) => {
+        try {
+            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', id), data);
+            closeModal();
+        } catch (err) {
+            checkFirebaseError(err);
+            closeModal();
+        }
+    };
+
+    window.adminBookSlot = (time) => {
             // Interface rápida pro admin marcar
             const body = `
                 <input type="text" id="adm-book-name" placeholder="Nome do Cliente" class="w-full bg-black border border-neutral-700 text-white p-3 rounded-lg mb-3">
@@ -736,15 +860,16 @@
         };
 
         window.executeAdminBook = async (time) => {
-            const name = document.getElementById('adm-book-name').value;
-            const checkboxes = document.querySelectorAll('.adm-book-svc:checked');
-            const svcs = Array.from(checkboxes).map(c => c.value);
-            
-            if(!name || svcs.length === 0) return alert("Preencha nome e serviço.");
-            
-            let total = 0;
-            svcs.forEach(id => { total += SERVICES.find(s=>s.id===id).price; });
-            
+        const name = document.getElementById('adm-book-name').value;
+        const checkboxes = document.querySelectorAll('.adm-book-svc:checked');
+        const svcs = Array.from(checkboxes).map(c => c.value);
+        
+        if(!name || svcs.length === 0) return showModal("Atenção", "Preencha nome e serviço.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded">Ok</button>`);
+        
+        let total = 0;
+        svcs.forEach(id => { total += SERVICES.find(s=>s.id===id).price; });
+        
+        try {
             await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments'), {
                 date: document.getElementById('admin-date').value,
                 time: time,
@@ -756,11 +881,15 @@
                 createdAt: Date.now()
             });
             closeModal();
-        };
+        } catch (err) {
+            checkFirebaseError(err);
+            closeModal();
+        }
+    };
 
-        // Boot
-        window.addEventListener('load', init);
+    // Boot
+    window.addEventListener('load', init);
 
-    </script>
+</script>
 </body>
 </html>
