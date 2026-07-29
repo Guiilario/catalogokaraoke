@@ -6,8 +6,8 @@
     <title>Salão do Dê - Alemoa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #121212; color: #f3f4f6; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f3f4f6; }
         
         /* Barber Pole Animation */
         .barber-pole {
@@ -17,12 +17,12 @@
                 -45deg,
                 #ffffff,
                 #ffffff 15px,
-                #cc0000 15px,
-                #cc0000 30px,
+                #dc2626 15px, /* Vermelho vibrante */
+                #dc2626 30px,
                 #ffffff 30px,
                 #ffffff 45px,
-                #111111 45px,
-                #111111 60px
+                #171717 45px, /* Preto quase carvão */
+                #171717 60px
             );
             background-size: 85px 85px;
             animation: barberpole 2s linear infinite;
@@ -31,290 +31,318 @@
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        ::-webkit-scrollbar-track { background: #171717; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-        .service-btn.selected { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); }
+        /* Estilo customizado para os serviços selecionados */
+        .service-btn { transition: all 0.2s ease-in-out; }
+        .service-btn.selected { 
+            border-color: #dc2626; /* Borda vermelha */
+            background-color: rgba(220, 38, 38, 0.05); /* Fundo avermelhado leve */
+        }
+        .service-btn.selected .service-name { color: #ffffff; }
+        .service-btn.selected .service-price { color: #dc2626; }
+        
         .hidden { display: none !important; }
         .pulse-red { animation: pulseRed 1.5s infinite; }
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
-    <div class="barber-pole sticky top-0 z-50"></div>
-    <header class="bg-black border-b border-neutral-800 p-4 sticky top-3 z-40 shadow-md">
+    <div class="barber-pole sticky top-0 z-50 shadow-[0_2px_10px_rgba(0,0,0,0.5)]"></div>
+    <header class="bg-[#111111] border-b border-neutral-800 p-4 sticky top-3 z-40 shadow-xl backdrop-blur-md bg-opacity-95">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
-                <div class="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-black font-black text-xl shadow-[0_0_15px_rgba(245,158,11,0.5)]">D</div>
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="navigate('home')">
+                <div class="w-12 h-12 bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-[0_0_15px_rgba(220,38,38,0.4)] group-hover:scale-105 transition-transform">D</div>
                 <div>
-                    <h1 class="font-black text-xl text-white tracking-widest uppercase">Salão do Dê</h1>
-                    <p class="text-xs text-amber-500 tracking-wider uppercase">Alemoa</p>
+                    <h1 class="font-black text-2xl text-white tracking-widest uppercase">Salão do Dê</h1>
+                    <p class="text-xs text-red-500 font-bold tracking-widest uppercase">Barbearia Alemoa</p>
                 </div>
             </div>
-            <button id="btn-logout" class="hidden text-xs bg-neutral-800 border border-neutral-700 text-gray-300 px-3 py-1.5 rounded hover:bg-neutral-700 transition" onclick="doLogout()">Sair</button>
+            <button id="btn-logout" class="hidden text-xs font-bold bg-neutral-900 border border-neutral-700 text-neutral-400 px-4 py-2 rounded-lg hover:bg-red-900 hover:text-white hover:border-red-700 transition" onclick="doLogout()">Sair da Conta</button>
         </div>
     </header>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 w-full relative">
         <div id="view-loading" class="flex flex-col items-center justify-center py-20">
-            <div class="w-12 h-12 border-4 border-neutral-700 border-t-amber-500 rounded-full animate-spin mb-4"></div>
-            <p class="text-neutral-400 font-bold animate-pulse">Conectando ao sistema...</p>
+            <div class="w-16 h-16 border-4 border-neutral-800 border-t-red-600 rounded-full animate-spin mb-6"></div>
+            <p class="text-neutral-400 font-bold animate-pulse text-lg tracking-wider">Conectando ao sistema...</p>
         </div>
 
-        <div id="view-home" class="hidden flex flex-col items-center justify-center py-10 md:py-20">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl md:text-5xl font-black text-white mb-4">O SEU ESTILO<br><span class="text-amber-500">EM BOAS MÃOS</span></h2>
-                <p class="text-neutral-400">Agende seu horário de forma rápida e prática.</p>
+        <div id="view-home" class="hidden flex flex-col items-center justify-center py-10 md:py-20 min-h-[60vh]">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">O SEU ESTILO<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700">EM BOAS MÃOS</span></h2>
+                <p class="text-neutral-400 text-lg">Agende seu horário de forma rápida e prática.</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <button onclick="goToClient()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">SOU CLIENTE</button>
-                <button onclick="goToAdmin()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1">ADMINISTRADOR</button>
+            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+                <button onclick="goToClient()" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-black py-5 px-6 rounded-xl shadow-[0_10px_20px_rgba(220,38,38,0.2)] transition-all transform hover:-translate-y-1 text-lg tracking-wider">SOU CLIENTE</button>
+                <button onclick="goToAdmin()" class="flex-1 bg-[#171717] hover:bg-neutral-800 text-neutral-300 border border-neutral-700 font-bold py-5 px-6 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 text-lg tracking-wider">ADMINISTRADOR</button>
             </div>
         </div>
 
-        <!-- Tela de Autenticação do Cliente -->
         <div id="view-client-auth" class="hidden max-w-md mx-auto mt-10">
-            <div class="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 shadow-2xl">
-                <h3 class="text-2xl font-black text-white mb-6 text-center">Acesso do Cliente</h3>
+            <div class="bg-[#111111] p-8 rounded-2xl border border-neutral-800 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-transparent"></div>
+                <h3 class="text-2xl font-black text-white mb-2 text-center uppercase tracking-wider">Acesso do Cliente</h3>
+                <p class="text-neutral-500 text-center text-sm mb-6 font-semibold">Entre ou crie sua conta para agendar</p>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-bold text-neutral-400 mb-1">E-mail</label>
-                        <input type="email" id="client-email" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <label class="block text-sm font-bold text-neutral-400 mb-1">Seu E-mail</label>
+                        <input type="email" id="client-email" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white rounded-lg p-4 focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none transition font-medium">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-neutral-400 mb-1">Senha</label>
-                        <input type="password" id="client-pass" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <label class="block text-sm font-bold text-neutral-400 mb-1">Sua Senha</label>
+                        <input type="password" id="client-pass" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white rounded-lg p-4 focus:border-red-600 focus:ring-1 focus:ring-red-600 focus:outline-none transition font-medium">
                     </div>
-                    <div class="flex gap-3 pt-2">
-                        <button onclick="handleClientLogin()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-lg transition">ENTRAR</button>
-                        <button onclick="handleClientRegister()" class="flex-1 bg-neutral-800 border border-neutral-700 text-amber-500 hover:bg-neutral-700 font-black py-3 rounded-lg transition">CRIAR CONTA</button>
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="handleClientLogin()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-xl transition shadow-lg">ENTRAR</button>
+                        <button onclick="handleClientRegister()" class="flex-1 bg-neutral-900 border border-neutral-700 text-red-500 hover:bg-neutral-800 font-black py-4 rounded-xl transition">CRIAR CONTA</button>
                     </div>
-                    <button onclick="navigate('home')" class="w-full mt-2 text-neutral-500 hover:text-white text-sm font-bold py-2">Voltar</button>
+                    <button onclick="navigate('home')" class="w-full mt-4 text-neutral-600 hover:text-white text-sm font-bold py-2 transition">Voltar ao Início</button>
                 </div>
             </div>
         </div>
 
-        <!-- Tela de Autenticação do Admin -->
         <div id="view-admin-login" class="hidden max-w-md mx-auto mt-10">
-            <div class="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 shadow-2xl">
-                <h3 class="text-2xl font-black text-white mb-6 text-center">Painel Restrito</h3>
+            <div class="bg-[#111111] p-8 rounded-2xl border border-neutral-800 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-transparent"></div>
+                <h3 class="text-2xl font-black text-white mb-2 text-center uppercase tracking-wider">Painel Restrito</h3>
+                <p class="text-neutral-500 text-center text-sm mb-6 font-semibold">Acesso exclusivo da barbearia</p>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-bold text-neutral-400 mb-1">E-mail do Administrador</label>
-                        <input type="email" id="admin-email" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <input type="email" id="admin-email" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white rounded-lg p-4 focus:border-red-600 focus:outline-none transition font-medium">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-neutral-400 mb-1">Senha</label>
-                        <input type="password" id="admin-pass" class="w-full bg-black border border-neutral-800 text-white rounded-lg p-3 focus:border-amber-500 focus:outline-none transition">
+                        <input type="password" id="admin-pass" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white rounded-lg p-4 focus:border-red-600 focus:outline-none transition font-medium">
                     </div>
-                    <div class="flex gap-3 pt-2">
-                        <button onclick="handleAdminAuth(false)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-lg transition">ENTRAR</button>
-                        <button onclick="handleAdminAuth(true)" class="flex-1 bg-neutral-800 border border-neutral-700 text-neutral-400 hover:bg-neutral-700 font-bold py-3 rounded-lg transition text-sm">Criar Acesso</button>
+                    <div class="flex flex-col gap-3 pt-4">
+                        <button onclick="handleAdminAuth(false)" class="w-full bg-white hover:bg-gray-200 text-black font-black py-4 rounded-xl transition shadow-lg">ACESSAR PAINEL</button>
+                        <button onclick="handleAdminAuth(true)" class="w-full bg-transparent border border-neutral-700 text-neutral-500 hover:text-neutral-300 font-bold py-3 rounded-xl transition text-sm">Registrar Acesso Admin</button>
                     </div>
-                    <button onclick="navigate('home')" class="w-full mt-2 text-neutral-500 hover:text-white text-sm font-bold py-2">Voltar</button>
+                    <button onclick="navigate('home')" class="w-full mt-2 text-neutral-600 hover:text-white text-sm font-bold py-2 transition">Voltar ao Início</button>
                 </div>
             </div>
         </div>
 
         <div id="view-user" class="hidden">
-            <!-- Alertas em Tempo Real (Cliente) -->
             <div id="client-notification-area" class="mb-6 empty:hidden"></div>
 
-            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 md:p-6 mb-6">
-                <h3 class="text-lg font-black text-white mb-4 border-b border-neutral-800 pb-2">1. Escolha a Data</h3>
-                <input type="date" id="client-date" class="w-full bg-black border border-neutral-700 text-white p-3 rounded-lg text-lg focus:border-amber-500 outline-none" onchange="renderUserView()">
-                <p id="client-date-msg" class="text-red-400 text-sm font-bold mt-2 hidden">O salão não abre neste dia.</p>
+            <div class="bg-[#111111] border border-neutral-800 rounded-2xl p-5 md:p-8 mb-6 shadow-lg">
+                <h3 class="text-xl font-black text-white mb-5 flex items-center gap-2"><span class="text-red-600">1.</span> Escolha a Data</h3>
+                <input type="date" id="client-date" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white p-4 rounded-xl text-lg font-bold focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition" onchange="renderUserView()">
+                <p id="client-date-msg" class="text-red-500 text-sm font-bold mt-3 hidden bg-red-900 bg-opacity-10 border border-red-900 p-3 rounded-lg"></p>
             </div>
 
             <div id="client-booking-section" class="space-y-6">
-                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 md:p-6">
-                    <h3 class="text-lg font-black text-white mb-4 border-b border-neutral-800 pb-2">2. Selecione os Serviços</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="client-services">
-                        <!-- Renderizado via JS -->
+                <div class="bg-[#111111] border border-neutral-800 rounded-2xl p-5 md:p-8 shadow-lg">
+                    <h3 class="text-xl font-black text-white mb-5 flex items-center gap-2"><span class="text-red-600">2.</span> O que vamos fazer hoje?</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="client-services">
+                        <!-- Serviços renderizados via JS -->
                     </div>
-                    <div class="mt-4 pt-4 border-t border-neutral-800 flex justify-between items-center">
-                        <span class="text-neutral-400 font-bold">Total:</span>
-                        <span id="client-total" class="text-2xl font-black text-amber-500">R$ 0,00</span>
+                    <div class="mt-6 pt-5 border-t border-neutral-800 flex justify-between items-center bg-[#0a0a0a] p-4 rounded-xl border border-neutral-900">
+                        <span class="text-neutral-400 font-black uppercase tracking-wider">Total Estimado</span>
+                        <span id="client-total" class="text-3xl font-black text-white">R$ 0,00</span>
                     </div>
                 </div>
 
-                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 md:p-6">
-                    <h3 class="text-lg font-black text-white mb-4 border-b border-neutral-800 pb-2">3. Como quer ser chamado?</h3>
-                    <input type="text" id="client-name" placeholder="Seu nome ou apelido" class="w-full bg-black border border-neutral-700 text-white p-3 rounded-lg focus:border-amber-500 outline-none">
+                <div class="bg-[#111111] border border-neutral-800 rounded-2xl p-5 md:p-8 shadow-lg">
+                    <h3 class="text-xl font-black text-white mb-5 flex items-center gap-2"><span class="text-red-600">3.</span> Seu Nome</h3>
+                    <input type="text" id="client-name" placeholder="Como gosta de ser chamado?" class="w-full bg-[#0a0a0a] border border-neutral-800 text-white p-4 rounded-xl font-bold focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition">
                 </div>
 
-                <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 md:p-6">
-                    <h3 class="text-lg font-black text-white mb-4 border-b border-neutral-800 pb-2">4. Horários Livres</h3>
+                <div class="bg-[#111111] border border-neutral-800 rounded-2xl p-5 md:p-8 shadow-lg">
+                    <h3 class="text-xl font-black text-white mb-5 flex items-center gap-2"><span class="text-red-600">4.</span> Horários Disponíveis</h3>
                     <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3" id="client-slots">
-                        <!-- Renderizado via JS -->
+                        <!-- Horários renderizados via JS -->
                     </div>
                 </div>
             </div>
 
-            <!-- Meus Agendamentos -->
-            <div id="client-my-appointments" class="mt-10 hidden">
-                <h3 class="text-xl font-black text-amber-500 mb-4 border-b border-neutral-800 pb-2">Meus Cortes Agendados</h3>
-                <div id="client-my-appointments-list" class="space-y-3"></div>
+            <div id="client-my-appointments" class="mt-12 hidden">
+                <h3 class="text-2xl font-black text-white mb-6 uppercase tracking-wider flex items-center gap-3"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Meus Agendamentos</h3>
+                <div id="client-my-appointments-list" class="space-y-4"></div>
             </div>
         </div>
 
         <div id="view-admin-dashboard" class="hidden">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-neutral-900 border border-neutral-800 p-4 md:p-6 rounded-2xl mb-6 gap-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#111111] border border-neutral-800 p-5 md:p-6 rounded-2xl mb-6 gap-5 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-900"></div>
                 <div>
-                    <label class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Data da Agenda</label>
-                    <input type="date" id="admin-date" class="bg-black border border-neutral-700 text-white p-2 rounded-lg text-lg focus:border-amber-500 outline-none font-bold" onchange="renderAdminDashboard()">
+                    <label class="block text-xs font-black text-neutral-500 uppercase tracking-widest mb-2">Visualizando Agenda de</label>
+                    <input type="date" id="admin-date" class="bg-[#0a0a0a] border border-neutral-700 text-white p-3 rounded-xl text-lg focus:border-red-600 outline-none font-bold shadow-inner" onchange="renderAdminDashboard()">
                 </div>
-                <div class="flex items-center gap-4 w-full md:w-auto justify-between border-t border-neutral-800 md:border-t-0 pt-4 md:pt-0">
-                    <div class="text-right">
-                        <p class="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Caixa do Dia</p>
-                        <p id="admin-revenue" class="text-2xl font-black text-green-500">R$ 0,00</p>
+                <div class="flex items-center gap-5 w-full md:w-auto justify-between border-t border-neutral-800 md:border-t-0 pt-5 md:pt-0">
+                    <div class="text-right bg-[#0a0a0a] p-3 rounded-xl border border-neutral-800 min-w-[140px]">
+                        <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">Caixa do Dia</p>
+                        <p id="admin-revenue" class="text-2xl font-black text-green-500 leading-none">R$ 0,00</p>
                     </div>
-                    <button id="btn-toggle-day" onclick="toggleDayStatus()" class="px-4 py-2 rounded-lg font-bold border transition"></button>
+                    <button id="btn-toggle-day" onclick="toggleDayStatus()" class="px-5 py-3 rounded-xl font-black border transition-all uppercase tracking-wider text-sm shadow-md"></button>
                 </div>
             </div>
 
-            <div class="flex gap-4 mb-4 text-xs font-bold text-neutral-400 flex-wrap">
-                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600"></span> Livre</div>
-                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Agendado</div>
-                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-600 pulse-red"></span> Em Corte</div>
-                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-600"></span> Finalizado</div>
+            <div class="flex gap-4 mb-6 text-xs font-bold text-neutral-400 flex-wrap px-2">
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-[#0a0a0a] border border-neutral-700 shadow-inner"></span> Livre</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600"></span> Agendado</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-orange-600 pulse-red shadow-[0_0_10px_rgba(234,88,12,0.5)]"></span> Chamado (Tolerância)</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"></span> Em Andamento</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-green-900 border border-green-700"></span> Finalizado / Recebido</div>
             </div>
 
-            <div class="bg-neutral-900 border border-neutral-800 p-4 md:p-6 rounded-2xl">
-                <div id="admin-slots" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    <!-- Renderizado via JS -->
+            <div class="bg-[#111111] border border-neutral-800 p-5 md:p-8 rounded-2xl shadow-xl">
+                <div id="admin-slots" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <!-- Horários renderizados via JS -->
                 </div>
             </div>
         </div>
     </main>
 
-    <div class="barber-pole mt-auto"></div>
+    <div class="barber-pole mt-auto shadow-[0_-2px_10px_rgba(0,0,0,0.5)]"></div>
 
-    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-200 p-6 relative" id="modal-content-container">
-            <h3 id="modal-title" class="text-xl font-black text-amber-500 mb-4 border-b border-neutral-800 pb-2">Título</h3>
-            <div id="modal-body" class="text-white space-y-4"></div>
-            <div id="modal-footer" class="mt-6 flex gap-3"></div>
-        <button onclick="closeModal()" class="absolute top-4 right-4 text-neutral-500 hover:text-white">✕</button>
-    </div>
-</div>
-
-<!-- AVISO DE ERRO FIREBASE / GITHUB PAGES -->
-<div id="setup-error-backdrop" class="fixed inset-0 bg-black bg-opacity-90 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
-    <div class="bg-neutral-900 border-2 border-red-600 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
-        <h3 class="text-2xl font-black text-red-500 mb-4 border-b border-neutral-800 pb-2">⚠️ Erro de Permissão no Firebase</h3>
-        <div class="text-white space-y-4 text-sm">
-            <p>O aplicativo tentou conectar ao seu banco de dados, mas foi bloqueado pelas regras de segurança do Firebase.</p>
-            <p class="font-bold text-amber-500">Como corrigir (Passo a Passo):</p>
-            <ol class="list-decimal pl-5 space-y-2 text-neutral-300">
-                <li>Vá no seu <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-400 underline">Console do Firebase</a> e acesse seu projeto <b>desafio-7-dias-d3680</b>.</li>
-                <li>No menu esquerdo, clique em <b>Firestore Database</b> e vá na aba <b>Regras (Rules)</b>.</li>
-                <li>Mude a regra para permitir leitura e escrita:<br>
-                    <code class="block bg-black p-2 mt-1 border border-neutral-700 rounded text-green-400 font-mono">allow read, write: if true;</code>
-                </li>
-                <li>No menu esquerdo, vá em <b>Authentication</b> > Aba <b>Settings (Configurações)</b> > <b>Authorized domains</b> e adicione seu domínio do GitHub Pages (ex: <i>seu-usuario.github.io</i>).</li>
-                <li>Ainda em Authentication, na aba <b>Sign-in method</b>, ative a opção <b>Provedor de E-mail/Senha</b>.</li>
-            </ol>
-        </div>
-        <div class="mt-6">
-            <button onclick="document.getElementById('setup-error-backdrop').classList.add('hidden')" class="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-bold py-3 rounded-lg transition">Entendi, vou configurar!</button>
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-[#111111] border border-neutral-800 rounded-2xl w-full max-w-md shadow-2xl transform scale-100 transition-transform duration-200 p-8 relative overflow-hidden" id="modal-content-container">
+            <div class="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+            <h3 id="modal-title" class="text-2xl font-black text-white mb-5 uppercase tracking-wider">Título</h3>
+            <div id="modal-body" class="text-neutral-300 space-y-4 font-medium text-lg"></div>
+            <div id="modal-footer" class="mt-8 flex gap-3"></div>
         </div>
     </div>
-</div>
+
+    <!-- Modal de Erro do Firebase (Apenas exibido se houver bloqueio real de permissão) -->
+    <div id="setup-error-backdrop" class="fixed inset-0 bg-black bg-opacity-95 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-[#111111] border-2 border-red-600 rounded-2xl w-full max-w-lg shadow-[0_0_30px_rgba(220,38,38,0.3)] p-8 relative">
+            <h3 class="text-2xl font-black text-red-500 mb-4 flex items-center gap-3"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Erro de Permissão</h3>
+            <div class="text-neutral-300 space-y-4 text-sm font-medium">
+                <p class="text-white text-base">O banco de dados do Firebase bloqueou o acesso.</p>
+                <p class="font-bold text-red-400">Como corrigir (Passo a Passo):</p>
+                <ol class="list-decimal pl-5 space-y-3 bg-[#0a0a0a] p-4 rounded-xl border border-neutral-800">
+                    <li>Vá no seu <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-400 hover:text-blue-300 underline font-bold">Console do Firebase</a>.</li>
+                    <li>No menu esquerdo, clique em <b>Firestore Database</b> e vá na aba <b>Regras (Rules)</b>.</li>
+                    <li>Substitua tudo pelo código abaixo:
+                        <code class="block bg-black p-3 mt-2 border border-neutral-700 rounded text-green-400 font-mono text-xs overflow-x-auto whitespace-pre">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</code>
+                    </li>
+                    <li>Clique no botão <b>Publicar</b>.</li>
+                </ol>
+            </div>
+            <div class="mt-6">
+                <button onclick="document.getElementById('setup-error-backdrop').classList.add('hidden')" class="w-full bg-white hover:bg-gray-200 text-black font-black py-4 rounded-xl transition shadow-lg text-lg">Entendi, já arrumei!</button>
+            </div>
+        </div>
+    </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuração do Firebase fornecida pelo usuário
-        const firebaseConfig = {
-            apiKey: "AIzaSyCyRPstlq91unKjiWmHEktAUXgCtfVWTFU",
-            authDomain: "desafio-7-dias-d3680.firebaseapp.com",
-            projectId: "desafio-7-dias-d3680",
-            storageBucket: "desafio-7-dias-d3680.firebasestorage.app",
-            messagingSenderId: "981540824605",
-            appId: "1:981540824605:web:f35d6a0616a3bce54308f4",
-            measurementId: "G-J7NXMXCQ56"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyCyRPstlq91unKjiWmHEktAUXgCtfVWTFU",
+        authDomain: "desafio-7-dias-d3680.firebaseapp.com",
+        projectId: "desafio-7-dias-d3680",
+        storageBucket: "desafio-7-dias-d3680.firebasestorage.app",
+        messagingSenderId: "981540824605",
+        appId: "1:981540824605:web:f35d6a0616a3bce54308f4",
+        measurementId: "G-J7NXMXCQ56"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-        // O prompt do sistema exige este caminho. Usarei o projectId como appId para manter isolamento.
-        const APP_ID = 'salao-do-de-alemoa'; 
+    const APP_ID = 'salao-do-de-alemoa'; 
 
-        // --- Configurações de Negócio ---
-        const SERVICES = [
-            { id: 'pezinho', name: 'Pézinho', price: 10, estTime: 5 }, // tempo para chamar proximo
-            { id: 'corte', name: 'Corte', price: 30, estTime: 15 },
-            { id: 'barba', name: 'Barba', price: 25, estTime: 15 }
-        ];
+    const SERVICES = [
+        { id: 'pezinho', name: 'Pézinho', price: 10, estTime: 5 }, 
+        { id: 'corte', name: 'Corte', price: 30, estTime: 15 },
+        { id: 'barba', name: 'Barba', price: 25, estTime: 15 }
+    ];
 
-        // --- Estado Global ---
-        let currentUser = null;
-        let currentView = 'loading';
-        let appointments = [];
-        let settings = [];
+    let currentUser = null;
+    let currentView = 'loading';
+    let appointments = [];
+    let settings = [];
+    let clientSelectedServices = [];
+    let realtimeLoopInterval = null;
+
+    window.formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    window.getToday = () => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().split('T')[0];
+    };
+    
+    const TIME_SLOTS = [];
+    for (let h = 8; h <= 19; h++) {
+        if(h !== 12) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:00`);
+        if(h !== 12) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+
+    window.navigate = (view) => {
+        currentView = view;
+        document.querySelectorAll('main > div').forEach(el => el.classList.add('hidden'));
+        const viewEl = document.getElementById(`view-${view.replace('_', '-')}`);
+        if(viewEl) viewEl.classList.remove('hidden');
         
-        // Estado do Cliente
-        let clientSelectedServices = [];
-        let realtimeLoopInterval = null;
+        document.getElementById('btn-logout').classList.toggle('hidden', ['home', 'loading', 'client_auth', 'admin_login'].includes(view));
 
-        window.formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-        window.getToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-        
-        // --- Geração de Horários ---
-        const TIME_SLOTS = [];
-        for (let h = 8; h <= 19; h++) {
-            if(h !== 12) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:00`);
-            if(h !== 12) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:30`);
+        if (view === 'user') {
+            if(!document.getElementById('client-date').value) {
+                document.getElementById('client-date').value = window.getToday();
+                document.getElementById('client-date').min = window.getToday();
+            }
+            renderUserView();
         }
-
-        // --- Navegação ---
-        window.navigate = (view) => {
-            currentView = view;
-            document.querySelectorAll('main > div').forEach(el => el.classList.add('hidden'));
-            const viewEl = document.getElementById(`view-${view.replace('_', '-')}`);
-            if(viewEl) viewEl.classList.remove('hidden');
-            
-            document.getElementById('btn-logout').classList.toggle('hidden', ['home', 'loading', 'client_auth', 'admin_login'].includes(view));
-
-            if (view === 'user') {
-                if(!document.getElementById('client-date').value) {
-                    document.getElementById('client-date').value = window.getToday();
-                    document.getElementById('client-date').min = window.getToday();
-                }
-                renderUserView();
+        if (view === 'admin_dashboard') {
+            if(!document.getElementById('admin-date').value) {
+                document.getElementById('admin-date').value = window.getToday();
             }
-            if (view === 'admin_dashboard') {
-                if(!document.getElementById('admin-date').value) {
-                    document.getElementById('admin-date').value = window.getToday();
-                }
-                renderAdminDashboard();
-            }
-        };
+            renderAdminDashboard();
+        }
+    };
 
-        // --- Inicialização ---
     let isSetup = false;
+    let unsubAppointments = null;
+    let unsubSettings = null;
+
     async function init() {
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
-            if (!isSetup) {
-                isSetup = true;
+            
+            if (user) {
                 setupRealtime();
+                if (!isSetup) {
+                    isSetup = true;
+                    // Se estivermos vindo do carregamento inicial, redireciona baseado no email
+                    if(currentView === 'loading') {
+                        if(user.email === 'admin@salao.com' || user.email === document.getElementById('admin-email').value) {
+                            navigate('admin_dashboard');
+                        } else {
+                            navigate('user');
+                        }
+                    }
+                }
+            } else {
+                if (unsubAppointments) unsubAppointments();
+                if (unsubSettings) unsubSettings();
+                if (realtimeLoopInterval) clearInterval(realtimeLoopInterval);
+                
+                isSetup = true;
                 navigate('home');
             }
         });
     }
 
-    // --- Autenticação com Email e Senha ---
     window.doLogout = async () => {
         await signOut(auth);
-        currentUser = null;
-        navigate('home');
     };
 
     window.goToClient = () => {
@@ -328,53 +356,40 @@
     };
 
     const handleAuthError = (err) => {
-        let msg = "Ocorreu um erro na autenticação.";
-        if (err.code === 'auth/invalid-email') msg = "E-mail inválido.";
-        if (err.code === 'auth/user-not-found') msg = "Usuário não encontrado. Tente criar uma conta primeiro.";
-        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = "Credenciais incorretas.";
-        if (err.code === 'auth/email-already-in-use') msg = "Este e-mail já está em uso.";
+        console.error(err);
+        let msg = "Ocorreu um erro. Verifique seus dados.";
+        if (err.code === 'auth/invalid-email') msg = "E-mail com formato inválido.";
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') msg = "Usuário não encontrado ou senha incorreta.";
+        if (err.code === 'auth/email-already-in-use') msg = "Este e-mail já possui cadastro.";
         if (err.code === 'auth/weak-password') msg = "A senha deve ter no mínimo 6 caracteres.";
-        if (err.message && !msg.includes('auth')) msg += `<br><span class="text-xs text-neutral-500">${err.message}</span>`;
         
-        showModal("Erro de Acesso", `<p class="text-white">${msg}</p>`, `<button onclick="closeModal()" class="w-full bg-amber-500 text-black font-bold py-2 rounded-lg">OK</button>`);
+        showModal("Aviso de Acesso", `<p class="text-white">${msg}</p>`, `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-4 rounded-xl">Tentar Novamente</button>`);
     };
 
     window.handleClientLogin = async () => {
         const e = document.getElementById('client-email').value;
         const p = document.getElementById('client-pass').value;
-        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
-        try {
-            await signInWithEmailAndPassword(auth, e, p);
-            document.getElementById('client-email').value = '';
-            document.getElementById('client-pass').value = '';
-            navigate('user');
-        } catch(err) { handleAuthError(err); }
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-3 rounded-xl">OK</button>`);
+        try { await signInWithEmailAndPassword(auth, e, p); navigate('user'); } catch(err) { handleAuthError(err); }
     };
 
     window.handleClientRegister = async () => {
         const e = document.getElementById('client-email').value;
         const p = document.getElementById('client-pass').value;
-        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
-        try {
-            await createUserWithEmailAndPassword(auth, e, p);
-            document.getElementById('client-email').value = '';
-            document.getElementById('client-pass').value = '';
-            navigate('user');
-        } catch(err) { handleAuthError(err); }
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha para criar conta.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-3 rounded-xl">OK</button>`);
+        try { await createUserWithEmailAndPassword(auth, e, p); navigate('user'); } catch(err) { handleAuthError(err); }
     };
 
     window.handleAdminAuth = async (isRegister) => {
         const e = document.getElementById('admin-email').value;
         const p = document.getElementById('admin-pass').value;
-        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded-lg">OK</button>`);
+        if(!e || !p) return showModal("Atenção", "Preencha e-mail e senha administrativa.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-3 rounded-xl">OK</button>`);
         try {
             if(isRegister) {
                 await createUserWithEmailAndPassword(auth, e, p);
             } else {
                 await signInWithEmailAndPassword(auth, e, p);
             }
-            document.getElementById('admin-email').value = '';
-            document.getElementById('admin-pass').value = '';
             navigate('admin_dashboard');
         } catch(err) { handleAuthError(err); }
     };
@@ -383,20 +398,24 @@
     let prevApptCount = 0;
 
     function checkFirebaseError(err) {
-        console.error("Firebase Erro:", err);
+        console.error("Firebase Erro (Firestore):", err);
         if(err.code === 'permission-denied') {
             document.getElementById('setup-error-backdrop').classList.remove('hidden');
         }
     }
 
     function setupRealtime() {
+        if (!currentUser) return; // Evita tentar ler o banco sem estar logado
+
+        if (unsubAppointments) unsubAppointments();
+        if (unsubSettings) unsubSettings();
+
         const apptRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
         const setRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'settings');
 
-        onSnapshot(query(apptRef), (snap) => {
+        unsubAppointments = onSnapshot(query(apptRef), (snap) => {
             appointments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             
-            // Beep para novos agendamentos (Apenas para Admin)
             if(!firstLoad && currentView === 'admin_dashboard' && appointments.length > prevApptCount) {
                 playBeep();
             }
@@ -407,165 +426,168 @@
             if (currentView === 'admin_dashboard') renderAdminDashboard();
         }, checkFirebaseError);
 
-        onSnapshot(query(setRef), (snap) => {
+        unsubSettings = onSnapshot(query(setRef), (snap) => {
             settings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             if (currentView === 'user') renderUserView();
             if (currentView === 'admin_dashboard') renderAdminDashboard();
         }, checkFirebaseError);
 
-        // Loop global para atualizações de cronômetro
-            if(realtimeLoopInterval) clearInterval(realtimeLoopInterval);
-            realtimeLoopInterval = setInterval(() => {
-                if (currentView === 'user') checkClientAlerts();
-                if (currentView === 'admin_dashboard') updateAdminTimers();
-            }, 1000);
-        }
+        if(realtimeLoopInterval) clearInterval(realtimeLoopInterval);
+        realtimeLoopInterval = setInterval(() => {
+            if (currentView === 'user') checkClientAlerts();
+            if (currentView === 'admin_dashboard') updateAdminTimers();
+        }, 1000);
+    }
 
-        // --- Utilitários de Data e Som ---
-        window.isDayClosed = (date) => settings.some(s => s.type === 'closed_day' && s.date === date);
-        window.isWorkingDay = (dateStr) => {
-            const d = new Date(dateStr + "T12:00:00");
-            return d.getDay() >= 2 && d.getDay() <= 6; // Terça a Sabado
-        };
+    window.isDayClosed = (date) => settings.some(s => s.type === 'closed_day' && s.date === date);
+    window.isWorkingDay = (dateStr) => {
+        const d = new Date(dateStr + "T12:00:00");
+        return d.getDay() >= 2 && d.getDay() <= 6; // Terça a Sabado
+    };
+    
+    function playBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
+        } catch(e){}
+    }
+
+    function formatTimeDiff(ms) {
+        if(ms < 0) ms = 0;
+        const totalSecs = Math.floor(ms / 1000);
+        const m = Math.floor(totalSecs / 60);
+        const s = totalSecs % 60;
+        return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    window.showModal = (title, bodyHtml, buttonsHtml) => {
+        document.getElementById('modal-title').innerHTML = title;
+        document.getElementById('modal-body').innerHTML = bodyHtml;
+        document.getElementById('modal-footer').innerHTML = buttonsHtml;
+        document.getElementById('modal-backdrop').classList.remove('hidden');
+    };
+    window.closeModal = () => document.getElementById('modal-backdrop').classList.add('hidden');
+
+    window.toggleClientService = (id) => {
+        if (clientSelectedServices.includes(id)) {
+            clientSelectedServices = clientSelectedServices.filter(s => s !== id);
+        } else {
+            clientSelectedServices.push(id);
+        }
+        renderUserView();
+    };
+
+    window.renderUserView = () => {
+        const dateStr = document.getElementById('client-date').value;
+        const closedMsg = document.getElementById('client-date-msg');
+        const bookSection = document.getElementById('client-booking-section');
         
-        function playBeep() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
-                osc.connect(ctx.destination);
-                osc.start(); osc.stop(ctx.currentTime + 0.3);
-            } catch(e){}
+        if (!isWorkingDay(dateStr)) {
+            closedMsg.innerHTML = "⚠️ O salão atende apenas de <b>Terça a Sábado</b>.";
+            closedMsg.classList.remove('hidden');
+            bookSection.classList.add('hidden');
+        } else if (isDayClosed(dateStr)) {
+            closedMsg.innerHTML = "⚠️ Data indisponível ou <b>agenda fechada</b> para este dia.";
+            closedMsg.classList.remove('hidden');
+            bookSection.classList.add('hidden');
+        } else {
+            closedMsg.classList.add('hidden');
+            bookSection.classList.remove('hidden');
         }
 
-        function formatTimeDiff(ms) {
-            if(ms < 0) ms = 0;
-            const totalSecs = Math.floor(ms / 1000);
-            const m = Math.floor(totalSecs / 60);
-            const s = totalSecs % 60;
-            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        }
+        let svcHtml = '';
+        let total = 0;
+        SERVICES.forEach(s => {
+            const isSelected = clientSelectedServices.includes(s.id);
+            if (isSelected) total += s.price;
+            svcHtml += `
+                <button onclick="toggleClientService('${s.id}')" class="service-btn ${isSelected ? 'selected' : 'border-neutral-800 bg-[#0a0a0a] hover:border-neutral-600'} border-2 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer w-full focus:outline-none">
+                    <span class="service-name font-black text-neutral-300 text-lg">${s.name}</span>
+                    <span class="service-price text-neutral-500 font-bold">${formatCurrency(s.price)}</span>
+                </button>`;
+        });
+        document.getElementById('client-services').innerHTML = svcHtml;
+        document.getElementById('client-total').textContent = formatCurrency(total);
 
-        // --- Modais ---
-        window.showModal = (title, bodyHtml, buttonsHtml) => {
-            document.getElementById('modal-title').innerHTML = title;
-            document.getElementById('modal-body').innerHTML = bodyHtml;
-            document.getElementById('modal-footer').innerHTML = buttonsHtml;
-            document.getElementById('modal-backdrop').classList.remove('hidden');
-        };
-        window.closeModal = () => document.getElementById('modal-backdrop').classList.add('hidden');
-
-        // --- LÓGICA DO CLIENTE ---
-        window.toggleClientService = (id) => {
-            if (clientSelectedServices.includes(id)) {
-                clientSelectedServices = clientSelectedServices.filter(s => s !== id);
+        const dayApps = appointments.filter(a => a.date === dateStr);
+        let slotsHtml = '';
+        TIME_SLOTS.forEach(time => {
+            const isBooked = dayApps.some(a => a.time === time);
+            if (isBooked) {
+                slotsHtml += `<div class="bg-neutral-900 text-neutral-600 border border-neutral-800 py-3 rounded-xl text-center font-bold opacity-60 cursor-not-allowed flex flex-col shadow-inner"><span class="line-through">${time}</span><span class="text-[9px] uppercase tracking-widest mt-1">Ocupado</span></div>`;
             } else {
-                clientSelectedServices.push(id);
+                slotsHtml += `<button onclick="bookSlot('${time}')" class="bg-[#0a0a0a] hover:bg-white hover:text-black hover:scale-105 border border-neutral-700 text-neutral-300 py-3 rounded-xl font-black transition-all shadow-md">${time}</button>`;
             }
-            renderUserView();
-        };
+        });
+        document.getElementById('client-slots').innerHTML = slotsHtml;
 
-        window.renderUserView = () => {
-            const dateStr = document.getElementById('client-date').value;
-            const closedMsg = document.getElementById('client-date-msg');
-            const bookSection = document.getElementById('client-booking-section');
-            
-            if (!isWorkingDay(dateStr)) {
-                closedMsg.textContent = "O salão atende apenas de Terça a Sábado.";
-                closedMsg.classList.remove('hidden');
-                bookSection.classList.add('hidden');
-            } else if (isDayClosed(dateStr)) {
-                closedMsg.textContent = "Data indisponível/fechada.";
-                closedMsg.classList.remove('hidden');
-                bookSection.classList.add('hidden');
-            } else {
-                closedMsg.classList.add('hidden');
-                bookSection.classList.remove('hidden');
-            }
-
-            // Render Services
-            let svcHtml = '';
-            let total = 0;
-            SERVICES.forEach(s => {
-                const isSelected = clientSelectedServices.includes(s.id);
-                if (isSelected) total += s.price;
-                svcHtml += `
-                    <div onclick="toggleClientService('${s.id}')" class="service-btn ${isSelected ? 'selected' : 'border-neutral-700 bg-neutral-800'} border-2 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:border-amber-700 transition">
-                        <span class="font-bold text-white">${s.name}</span>
-                        <span class="text-amber-500 font-black">${formatCurrency(s.price)}</span>
-                    </div>`;
-            });
-            document.getElementById('client-services').innerHTML = svcHtml;
-            document.getElementById('client-total').textContent = formatCurrency(total);
-
-            // Render Slots
-            const dayApps = appointments.filter(a => a.date === dateStr);
-            let slotsHtml = '';
-            TIME_SLOTS.forEach(time => {
-                const isBooked = dayApps.some(a => a.time === time);
-                if (isBooked) {
-                    slotsHtml += `<div class="bg-neutral-800 text-neutral-500 border border-neutral-700 py-3 rounded-lg text-center font-bold opacity-50 cursor-not-allowed flex flex-col"><span class="line-through">${time}</span><span class="text-[9px] uppercase">Ocupado</span></div>`;
-                } else {
-                    slotsHtml += `<button onclick="bookSlot('${time}')" class="bg-black hover:bg-amber-500 hover:text-black border border-neutral-700 text-white py-3 rounded-lg font-black transition-colors shadow-sm">${time}</button>`;
-                }
-            });
-            document.getElementById('client-slots').innerHTML = slotsHtml;
-
-            // Render My Appointments
-            const myApps = appointments.filter(a => a.userId === currentUser.uid);
-            const myAppsList = document.getElementById('client-my-appointments-list');
-            const myAppsContainer = document.getElementById('client-my-appointments');
-            
-            if (myApps.length > 0) {
-                myAppsContainer.classList.remove('hidden');
-                let myHtml = '';
-                myApps.forEach(a => {
-                    const svcNames = a.services.map(id => SERVICES.find(s=>s.id===id)?.name).join(', ');
-                    let statusBadge = `<span class="bg-neutral-700 text-white text-xs px-2 py-1 rounded">Agendado</span>`;
-                    if(a.status === 'called') statusBadge = `<span class="bg-amber-500 text-black font-bold text-xs px-2 py-1 rounded">Chamado!</span>`;
-                    if(a.status === 'started') statusBadge = `<span class="bg-red-600 text-white font-bold text-xs px-2 py-1 rounded pulse-red">Em Andamento</span>`;
-                    if(a.status === 'completed') statusBadge = `<span class="bg-green-600 text-white font-bold text-xs px-2 py-1 rounded">Finalizado</span>`;
-                    
-                    myHtml += `
-                        <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-xl flex justify-between items-center">
-                            <div>
-                                <p class="text-white font-black">${a.date.split('-').reverse().join('/')} às ${a.time}</p>
-                                <p class="text-neutral-400 text-sm mb-2">${svcNames}</p>
-                                ${statusBadge}
-                            </div>
-                            ${(a.status === 'booked') ? `<button onclick="cancelSlot('${a.id}')" class="text-red-500 hover:text-red-400 text-sm font-bold border border-red-900 px-3 py-1.5 rounded bg-red-900 bg-opacity-20">Cancelar</button>` : ''}
+        const myApps = appointments.filter(a => a.userId === currentUser?.uid);
+        const myAppsList = document.getElementById('client-my-appointments-list');
+        const myAppsContainer = document.getElementById('client-my-appointments');
+        
+        if (myApps.length > 0) {
+            myAppsContainer.classList.remove('hidden');
+            let myHtml = '';
+            myApps.forEach(a => {
+                const svcNames = a.services.map(id => SERVICES.find(s=>s.id===id)?.name).join(' + ');
+                let statusBadge = `<span class="bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-3 py-1.5 rounded-lg font-bold tracking-wider uppercase shadow-sm">Confirmado</span>`;
+                if(a.status === 'called') statusBadge = `<span class="bg-orange-600 text-white font-black text-xs px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-[0_0_10px_rgba(234,88,12,0.6)] pulse-red">Sua Vez!</span>`;
+                if(a.status === 'started') statusBadge = `<span class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">Na Cadeira</span>`;
+                if(a.status === 'completed') statusBadge = `<span class="bg-green-900 border border-green-700 text-green-400 font-black text-xs px-3 py-1.5 rounded-lg uppercase tracking-wider">Finalizado</span>`;
+                
+                myHtml += `
+                    <div class="bg-[#111111] border border-neutral-800 p-5 rounded-xl flex justify-between items-center shadow-lg">
+                        <div>
+                            <p class="text-white font-black text-xl mb-1">${a.date.split('-').reverse().join('/')} <span class="text-neutral-500 font-medium ml-2">às</span> <span class="text-red-500">${a.time}</span></p>
+                            <p class="text-neutral-400 text-sm mb-3 font-medium">${svcNames}</p>
+                            ${statusBadge}
                         </div>
-                    `;
-                });
-                myAppsList.innerHTML = myHtml;
-            } else {
-                myAppsContainer.classList.add('hidden');
-            }
-        };
-
-        window.bookSlot = (time) => {
-            const name = document.getElementById('client-name').value.trim();
-            if(!name) return showModal("Atenção", "Por favor, digite seu nome.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black font-bold py-2 rounded-lg">OK</button>`);
-            if(clientSelectedServices.length === 0) return showModal("Atenção", "Selecione pelo menos um serviço.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black font-bold py-2 rounded-lg">OK</button>`);
-
-            const dateStr = document.getElementById('client-date').value;
-            let total = 0;
-            clientSelectedServices.forEach(id => {
-                const s = SERVICES.find(x=>x.id===id);
-                if(s) total += s.price;
+                        ${(a.status === 'booked') ? `<button onclick="cancelSlot('${a.id}')" class="text-neutral-500 hover:text-white text-sm font-bold border border-neutral-700 hover:bg-red-600 hover:border-red-600 px-4 py-2 rounded-lg transition-colors">Cancelar</button>` : ''}
+                    </div>
+                `;
             });
+            myAppsList.innerHTML = myHtml;
+        } else {
+            myAppsContainer.classList.add('hidden');
+        }
+    };
 
-            const body = `<p class="text-neutral-300">Data: <b class="text-white">${dateStr.split('-').reverse().join('/')}</b></p>
-                          <p class="text-neutral-300">Horário: <b class="text-white">${time}</b></p>
-                          <p class="text-neutral-300">Total: <b class="text-amber-500 text-xl">${formatCurrency(total)}</b></p>`;
-            
-            const btns = `<button onclick="closeModal()" class="flex-1 border border-neutral-700 text-neutral-400 py-2 rounded-lg">Voltar</button>
-                          <button onclick="confirmBooking('${time}', '${name}', ${total})" class="flex-1 bg-amber-500 text-black font-black py-2 rounded-lg">Confirmar</button>`;
-            
-            showModal("Confirmar Agendamento", body, btns);
-        };
+    window.bookSlot = (time) => {
+        const name = document.getElementById('client-name').value.trim();
+        if(!name) return showModal("Atenção", "Por favor, preencha <b>Seu Nome</b> antes de escolher o horário.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-4 rounded-xl">Entendi</button>`);
+        if(clientSelectedServices.length === 0) return showModal("Atenção", "Selecione pelo menos um <b>Serviço</b> (Pézinho, Corte, etc) antes de escolher o horário.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-4 rounded-xl">Entendi</button>`);
 
-        window.confirmBooking = async (time, name, total) => {
+        const dateStr = document.getElementById('client-date').value;
+        let total = 0;
+        clientSelectedServices.forEach(id => {
+            const s = SERVICES.find(x=>x.id===id);
+            if(s) total += s.price;
+        });
+
+        const body = `
+            <div class="bg-[#0a0a0a] border border-neutral-800 p-4 rounded-xl mb-4">
+                <p class="text-neutral-400 text-sm mb-1">Data selecionada</p>
+                <p class="text-white font-black text-xl">${dateStr.split('-').reverse().join('/')}</p>
+            </div>
+            <div class="bg-[#0a0a0a] border border-neutral-800 p-4 rounded-xl mb-4">
+                <p class="text-neutral-400 text-sm mb-1">Horário</p>
+                <p class="text-white font-black text-xl">${time}</p>
+            </div>
+            <div class="flex justify-between items-center bg-[#0a0a0a] border border-neutral-800 p-4 rounded-xl">
+                <p class="text-neutral-400 text-sm font-bold">Total a pagar</p>
+                <p class="text-red-500 font-black text-2xl">${formatCurrency(total)}</p>
+            </div>`;
+        
+        const btns = `<button onclick="closeModal()" class="flex-1 bg-neutral-900 border border-neutral-700 text-neutral-400 font-bold py-4 rounded-xl hover:text-white transition">Cancelar</button>
+                      <button onclick="confirmBooking('${time}', '${name}', ${total})" class="flex-1 bg-white hover:bg-gray-200 text-black font-black py-4 rounded-xl transition shadow-lg text-lg">Confirmar</button>`;
+        
+        showModal("Resumo do Agendamento", body, btns);
+    };
+
+    window.confirmBooking = async (time, name, total) => {
         const dateStr = document.getElementById('client-date').value;
         const ref = collection(db, 'artifacts', APP_ID, 'public', 'data', 'appointments');
         try {
@@ -590,190 +612,164 @@
     };
 
     window.cancelSlot = (id) => {
-        showModal("Cancelar", "Tem certeza que deseja cancelar?", 
-        `<button onclick="closeModal()" class="flex-1 bg-neutral-700 text-white py-2 rounded-lg">Não</button>
-         <button onclick="tryDelete('${id}')" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg">Sim, Cancelar</button>`);
+        showModal("Cancelar Horário", "Tem certeza que deseja desistir deste horário?", 
+        `<button onclick="closeModal()" class="flex-1 bg-neutral-800 text-white font-bold py-4 rounded-xl hover:bg-neutral-700">Não, manter</button>
+         <button onclick="tryDelete('${id}')" class="flex-1 bg-red-600 text-white font-black py-4 rounded-xl hover:bg-red-500 shadow-lg">Sim, Cancelar</button>`);
     };
 
-    window.tryDelete = async (id) => {
-        try {
-            await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', id));
-            closeModal();
-        } catch (err) {
-            checkFirebaseError(err);
-            closeModal();
+    function checkClientAlerts() {
+        const area = document.getElementById('client-notification-area');
+        if(!area || currentView !== 'user') return;
+        
+        const todayStr = window.getToday();
+        const todayApps = appointments.filter(a => a.date === todayStr).sort((a,b) => a.time.localeCompare(b.time));
+        
+        const myAppsToday = todayApps.filter(a => a.userId === currentUser?.uid && (a.status === 'booked' || a.status === 'called'));
+        if(myAppsToday.length === 0) {
+            area.innerHTML = '';
+            return;
         }
-    };
 
-    // --- Realtime Client Alerts ---
-        function checkClientAlerts() {
-            const area = document.getElementById('client-notification-area');
-            if(!area || currentView !== 'user') return;
-            
-            const todayStr = window.getToday();
-            const todayApps = appointments.filter(a => a.date === todayStr).sort((a,b) => a.time.localeCompare(b.time));
-            
-            // Verifica se o usuário tem agendamentos hoje
-            const myAppsToday = todayApps.filter(a => a.userId === currentUser.uid && (a.status === 'booked' || a.status === 'called'));
-            if(myAppsToday.length === 0) {
-                area.innerHTML = '';
-                return;
-            }
+        let alertHtml = '';
+        
+        myAppsToday.forEach(myApp => {
+            if (myApp.status === 'called' && myApp.calledAt) {
+                const elapsed = Date.now() - myApp.calledAt;
+                const timeLeft = (2 * 60 * 1000) - elapsed; 
+                
+                if(timeLeft > 0) {
+                    alertHtml += `
+                        <div class="bg-gradient-to-r from-orange-600 to-red-600 text-white p-8 rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.4)] pulse-red mb-6 text-center border-2 border-red-400 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-black opacity-10 pattern-diagonal-lines"></div>
+                            <h2 class="text-4xl md:text-5xl font-black uppercase tracking-widest mb-2 drop-shadow-md relative z-10">Sua Vez!</h2>
+                            <p class="text-xl font-medium relative z-10">Dirija-se à cadeira do barbeiro.</p>
+                            <div class="text-5xl md:text-6xl font-black mt-6 font-mono tracking-wider drop-shadow-lg relative z-10">${formatTimeDiff(timeLeft)}</div>
+                            <p class="text-sm mt-3 font-bold uppercase tracking-widest opacity-80 relative z-10">Tolerância Máxima</p>
+                        </div>
+                    `;
+                }
+            } 
+            else if (myApp.status === 'booked') {
+                const startedApp = todayApps.find(a => a.status === 'started');
+                if (startedApp && startedApp.startedAt) {
+                    const pendingApps = todayApps.filter(a => a.status === 'booked');
+                    if(pendingApps.length > 0 && pendingApps[0].id === myApp.id) {
+                        const elapsed = Date.now() - startedApp.startedAt;
+                        const elapsedMins = elapsed / (1000 * 60);
+                        
+                        let metaMins = 5; 
+                        const hasCorteOrBarba = startedApp.services.some(id => id === 'corte' || id === 'barba');
+                        if(hasCorteOrBarba) metaMins = 15;
 
-            let alertHtml = '';
-            
-            myAppsToday.forEach(myApp => {
-                // 1. Sou eu que fui chamado?
-                if (myApp.status === 'called' && myApp.calledAt) {
-                    const elapsed = Date.now() - myApp.calledAt;
-                    const timeLeft = (2 * 60 * 1000) - elapsed; // 2 minutos tolerancia
-                    
-                    if(timeLeft > 0) {
-                        alertHtml += `
-                            <div class="bg-red-600 text-white p-6 rounded-2xl shadow-[0_0_20px_rgba(220,38,38,0.6)] pulse-red mb-4 text-center">
-                                <h2 class="text-3xl font-black uppercase tracking-widest mb-2">Sua Vez!</h2>
-                                <p class="text-lg">Dirija-se à cadeira do barbeiro.</p>
-                                <div class="text-4xl font-black mt-4 font-mono">${formatTimeDiff(timeLeft)}</div>
-                                <p class="text-xs mt-2 opacity-75">Tolerância máxima.</p>
-                            </div>
-                        `;
-                    }
-                } 
-                // 2. Prepare-se (calculando tempo do cara que tá na cadeira)
-                else if (myApp.status === 'booked') {
-                    // Descobrir se sou o próximo
-                    const startedApp = todayApps.find(a => a.status === 'started');
-                    if (startedApp && startedApp.startedAt) {
-                        // Todos os booked hoje
-                        const pendingApps = todayApps.filter(a => a.status === 'booked');
-                        // Se eu for o primeiro da fila
-                        if(pendingApps.length > 0 && pendingApps[0].id === myApp.id) {
-                            // Qual o tempo do cara da cadeira?
-                            const elapsed = Date.now() - startedApp.startedAt;
-                            const elapsedMins = elapsed / (1000 * 60);
-                            
-                            // Calcula meta do cara da cadeira
-                            let metaMins = 5; // Default pra pézinho
-                            const hasCorteOrBarba = startedApp.services.some(id => id === 'corte' || id === 'barba');
-                            if(hasCorteOrBarba) metaMins = 15;
-
-                            if (elapsedMins >= metaMins) {
-                                alertHtml += `
-                                    <div class="bg-amber-500 text-black p-4 rounded-xl shadow-lg mb-4 flex items-center gap-4">
-                                        <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center pulse-red">⚠️</div>
-                                        <div>
-                                            <h3 class="font-black text-xl">Prepare-se!</h3>
-                                            <p class="font-bold text-sm">O cliente atual está quase finalizando.</p>
-                                        </div>
+                        if (elapsedMins >= metaMins) {
+                            alertHtml += `
+                                <div class="bg-orange-500 text-black p-5 rounded-2xl shadow-[0_10px_25px_rgba(249,115,22,0.3)] mb-6 flex items-center gap-5 transform transition-all hover:scale-[1.02]">
+                                    <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center pulse-red shadow-inner shrink-0">
+                                        <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
-                                `;
-                            }
+                                    <div>
+                                        <h3 class="font-black text-2xl uppercase tracking-wider mb-1">Prepare-se!</h3>
+                                        <p class="font-bold text-black opacity-80">O cliente atual está quase finalizando o corte.</p>
+                                    </div>
+                                </div>
+                            `;
                         }
                     }
                 }
-            });
-
-            area.innerHTML = alertHtml;
-        }
-
-        // --- LÓGICA DO ADMIN ---
-        window.renderAdminDashboard = () => {
-            const dateStr = document.getElementById('admin-date').value;
-            const closed = isDayClosed(dateStr);
-            const dayApps = appointments.filter(a => a.date === dateStr);
-
-            // Btn Fechar Dia
-            const btnToggle = document.getElementById('btn-toggle-day');
-            if (closed) {
-                btnToggle.textContent = 'ABRIR DIA';
-                btnToggle.className = 'px-4 py-2 rounded-lg font-black border bg-green-900 bg-opacity-20 text-green-500 border-green-800 hover:bg-green-800 hover:text-white transition';
-            } else {
-                btnToggle.textContent = 'FECHAR DIA';
-                btnToggle.className = 'px-4 py-2 rounded-lg font-black border bg-red-900 bg-opacity-20 text-red-500 border-red-800 hover:bg-red-800 hover:text-white transition';
             }
+        });
 
-            // Faturamento
-            const completed = dayApps.filter(a => a.status === 'completed');
-            const revenue = completed.reduce((sum, a) => sum + (a.totalPrice||0), 0);
-            document.getElementById('admin-revenue').textContent = formatCurrency(revenue);
+        area.innerHTML = alertHtml;
+    }
 
-            // Slots
-            let slotsHtml = '';
-            TIME_SLOTS.forEach(time => {
-                const app = dayApps.find(a => a.time === time);
-                
-                if (!app) {
-                    // Livre
-                    const cl = closed ? 'opacity-30 cursor-not-allowed bg-black' : 'bg-black border-neutral-700 hover:border-neutral-500 cursor-pointer';
-                    slotsHtml += `<div onclick="${closed ? '' : `adminBookSlot('${time}')`}" class="border rounded-xl p-3 h-24 flex flex-col justify-between transition ${cl}">
-                        <span class="font-black text-neutral-500">${time}</span>
-                        <span class="text-xs text-neutral-600 font-bold uppercase">Livre</span>
-                    </div>`;
-                } else {
-                    // Ocupado
-                    let bgClass = "bg-amber-500 border-amber-600 text-black"; // booked
-                    let txtColor = "text-black";
-                    let statusLabel = "Agendado";
-                    let extraInfo = ''; // Timers
+    window.renderAdminDashboard = () => {
+        const dateStr = document.getElementById('admin-date').value;
+        const closed = isDayClosed(dateStr);
+        const dayApps = appointments.filter(a => a.date === dateStr);
 
-                    if (app.status === 'called') {
-                        bgClass = "bg-orange-500 border-orange-600 text-white pulse-red";
-                        txtColor = "text-white";
-                        statusLabel = "Chamado";
-                        extraInfo = `<div id="timer-${app.id}" class="text-[10px] font-mono font-black mt-1 bg-black text-white px-1 rounded">--:--</div>`;
-                    } else if (app.status === 'started') {
-                        bgClass = "bg-red-600 border-red-700 text-white pulse-red";
-                        txtColor = "text-white";
-                        statusLabel = "Em Corte";
-                        extraInfo = `<div id="timer-${app.id}" class="text-[10px] font-mono font-black mt-1 bg-black text-amber-500 px-1 rounded">--:--</div>`;
-                    } else if (app.status === 'completed') {
-                        bgClass = "bg-green-700 border-green-800 text-white opacity-80";
-                        txtColor = "text-white";
-                        statusLabel = "Finalizado";
-                        extraInfo = `<div class="text-[10px] font-black mt-1">${formatCurrency(app.totalPrice)}</div>`;
-                    }
-
-                    const svcShort = app.services.map(id => SERVICES.find(s=>s.id===id)?.name.substring(0,3)).join('+');
-                    
-                    slotsHtml += `<div onclick="adminManageSlot('${app.id}')" class="border rounded-xl p-3 h-24 flex flex-col justify-between cursor-pointer shadow-lg transform hover:scale-105 transition ${bgClass}">
-                        <div class="flex justify-between items-start">
-                            <span class="font-black text-lg leading-none ${txtColor}">${time}</span>
-                            <span class="text-[9px] uppercase font-bold opacity-80 ${txtColor}">${svcShort}</span>
-                        </div>
-                        <div>
-                            <span class="block font-black text-sm truncate leading-tight ${txtColor}">${app.customerName}</span>
-                            ${extraInfo}
-                        </div>
-                    </div>`;
-                }
-            });
-            document.getElementById('admin-slots').innerHTML = slotsHtml;
-            updateAdminTimers(); // Força render imediato dos timers
-        };
-
-        window.updateAdminTimers = () => {
-            if(currentView !== 'admin_dashboard') return;
-            const dateStr = document.getElementById('admin-date').value;
-            const dayApps = appointments.filter(a => a.date === dateStr);
-
-            dayApps.forEach(app => {
-                const timerEl = document.getElementById(`timer-${app.id}`);
-                if(!timerEl) return;
-
-                if(app.status === 'called' && app.calledAt) {
-                    const elapsed = Date.now() - app.calledAt;
-                    let timeLeft = (2 * 60 * 1000) - elapsed;
-                    if(timeLeft < 0) timeLeft = 0;
-                    timerEl.textContent = formatTimeDiff(timeLeft);
-                    if(timeLeft === 0) timerEl.classList.replace('text-white', 'text-red-300');
-                } else if (app.status === 'started' && app.startedAt) {
-                    const elapsed = Date.now() - app.startedAt;
-                    timerEl.textContent = formatTimeDiff(elapsed);
-                }
-            });
+        const btnToggle = document.getElementById('btn-toggle-day');
+        if (closed) {
+            btnToggle.textContent = 'DIA FECHADO - CLIQUE PARA ABRIR';
+            btnToggle.className = 'px-5 py-3 rounded-xl font-black border bg-green-900 bg-opacity-20 text-green-500 border-green-800 hover:bg-green-800 hover:text-white transition uppercase text-xs tracking-wider';
+        } else {
+            btnToggle.textContent = 'FECHAR AGENDA DE HOJE';
+            btnToggle.className = 'px-5 py-3 rounded-xl font-black border bg-red-900 bg-opacity-20 text-red-500 border-red-800 hover:bg-red-800 hover:text-white transition uppercase text-xs tracking-wider';
         }
 
-        window.toggleDayStatus = async () => {
+        const completed = dayApps.filter(a => a.status === 'completed');
+        const revenue = completed.reduce((sum, a) => sum + (a.totalPrice||0), 0);
+        document.getElementById('admin-revenue').textContent = formatCurrency(revenue);
+
+        let slotsHtml = '';
+        TIME_SLOTS.forEach(time => {
+            const app = dayApps.find(a => a.time === time);
+            
+            if (!app) {
+                const cl = closed ? 'opacity-20 cursor-not-allowed bg-black' : 'bg-[#0a0a0a] border-neutral-800 hover:border-neutral-500 cursor-pointer hover:bg-neutral-900';
+                slotsHtml += `<div onclick="${closed ? '' : `adminBookSlot('${time}')`}" class="border rounded-xl p-4 h-28 flex flex-col justify-between transition-all ${cl}">
+                    <span class="font-black text-neutral-600 text-lg">${time}</span>
+                    <span class="text-[10px] text-neutral-700 font-bold uppercase tracking-widest">Livre</span>
+                </div>`;
+            } else {
+                let bgClass = "bg-neutral-800 border-neutral-700"; 
+                let txtColor = "text-white";
+                let extraInfo = ''; 
+
+                if (app.status === 'called') {
+                    bgClass = "bg-orange-600 border-orange-500 pulse-red shadow-[0_0_15px_rgba(234,88,12,0.3)]";
+                    txtColor = "text-white";
+                    extraInfo = `<div id="timer-${app.id}" class="text-[11px] font-mono font-black mt-2 bg-black bg-opacity-40 text-white px-2 py-1 rounded-md inline-block">--:--</div>`;
+                } else if (app.status === 'started') {
+                    bgClass = "bg-red-700 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]";
+                    txtColor = "text-white";
+                    extraInfo = `<div id="timer-${app.id}" class="text-[11px] font-mono font-black mt-2 bg-black text-white px-2 py-1 rounded-md inline-block border border-red-900">--:--</div>`;
+                } else if (app.status === 'completed') {
+                    bgClass = "bg-green-900 border-green-800 opacity-60 grayscale-[50%]";
+                    txtColor = "text-green-100";
+                    extraInfo = `<div class="text-[11px] font-black mt-2 text-green-300 bg-black bg-opacity-30 px-2 py-1 rounded-md inline-block">${formatCurrency(app.totalPrice)}</div>`;
+                }
+
+                const svcShort = app.services.map(id => SERVICES.find(s=>s.id===id)?.name).join(' + ');
+                
+                slotsHtml += `<div onclick="adminManageSlot('${app.id}')" class="border rounded-xl p-4 h-28 flex flex-col justify-between cursor-pointer shadow-lg transform hover:scale-105 transition-all ${bgClass}">
+                    <div class="flex justify-between items-start">
+                        <span class="font-black text-xl leading-none ${txtColor}">${time}</span>
+                        <span class="text-[9px] uppercase font-bold tracking-wider opacity-70 truncate max-w-[60px] ${txtColor}">${svcShort}</span>
+                    </div>
+                    <div>
+                        <span class="block font-black text-sm truncate leading-tight ${txtColor} drop-shadow-md">${app.customerName}</span>
+                        ${extraInfo}
+                    </div>
+                </div>`;
+            }
+        });
+        document.getElementById('admin-slots').innerHTML = slotsHtml;
+        updateAdminTimers(); 
+    };
+
+    window.updateAdminTimers = () => {
+        if(currentView !== 'admin_dashboard') return;
+        const dateStr = document.getElementById('admin-date').value;
+        const dayApps = appointments.filter(a => a.date === dateStr);
+
+        dayApps.forEach(app => {
+            const timerEl = document.getElementById(`timer-${app.id}`);
+            if(!timerEl) return;
+
+            if(app.status === 'called' && app.calledAt) {
+                const elapsed = Date.now() - app.calledAt;
+                let timeLeft = (2 * 60 * 1000) - elapsed;
+                if(timeLeft < 0) timeLeft = 0;
+                timerEl.textContent = "TOLERÂNCIA: " + formatTimeDiff(timeLeft);
+                if(timeLeft === 0) timerEl.classList.replace('text-white', 'text-red-300');
+            } else if (app.status === 'started' && app.startedAt) {
+                const elapsed = Date.now() - app.startedAt;
+                timerEl.textContent = "TEMPO: " + formatTimeDiff(elapsed);
+            }
+        });
+    }
+
+    window.toggleDayStatus = async () => {
         const dateStr = document.getElementById('admin-date').value;
         const setting = settings.find(s => s.type === 'closed_day' && s.date === dateStr);
         try {
@@ -782,89 +778,109 @@
             } else {
                 await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'settings'), { type: 'closed_day', date: dateStr });
             }
-        } catch (err) {
-            checkFirebaseError(err);
-        }
-    };
-
-    window.adminManageSlot = (appIdStr) => {
-            const app = appointments.find(a => a.id === appIdStr);
-            if(!app) return;
-
-            if(app.status === 'completed') {
-                return showModal("Horário Finalizado", "<p>Este corte já foi recebido e contabilizado.</p>", `<button onclick="closeModal()" class="w-full bg-neutral-700 py-2 rounded font-bold text-white">Fechar</button>`);
-            }
-
-            const ref = doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', app.id);
-            const svcNames = app.services.map(id => SERVICES.find(s=>s.id===id)?.name).join(', ');
-            
-            let body = `
-                <div class="mb-4">
-                    <h4 class="font-black text-2xl text-amber-500 uppercase">${app.time} - ${app.customerName}</h4>
-                    <p class="text-neutral-400 text-sm mt-1">Serviços: ${svcNames}</p>
-                    <p class="text-white font-black text-xl mt-2">Valor: ${formatCurrency(app.totalPrice)}</p>
-                </div>
-            `;
-            let btns = '';
-
-            if (app.status === 'booked') {
-            btns = `
-                <button onclick="tryUpdate('${app.id}', {status: 'called', calledAt: Date.now()})" class="w-full bg-orange-500 text-white font-black py-3 rounded-lg mb-2">CHAMAR CLIENTE (2 MIN)</button>
-                <button onclick="tryDelete('${app.id}')" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Desmarcar</button>
-                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-            `;
-        } else if (app.status === 'called') {
-            btns = `
-                <button onclick="tryUpdate('${app.id}', {status: 'started', startedAt: Date.now()})" class="w-full bg-red-600 text-white font-black py-3 rounded-lg mb-2">INICIAR CORTE AGORA</button>
-                <button onclick="tryDelete('${app.id}')" class="w-full border border-red-900 text-red-500 hover:bg-red-900 font-bold py-2 rounded-lg mb-2">Cliente não apareceu (Pular)</button>
-                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-            `;
-        } else if (app.status === 'started') {
-            btns = `
-                <button onclick="tryUpdate('${app.id}', {status: 'completed', completedAt: Date.now()})" class="w-full bg-green-600 text-white font-black py-4 rounded-lg mb-2">FINALIZAR E RECEBER</button>
-                <button onclick="closeModal()" class="w-full text-neutral-400 py-2 font-bold">Voltar</button>
-            `;
-        }
-
-        showModal("Gerenciar Horário", body, `<div class="flex flex-col w-full">${btns}</div>`);
+        } catch (err) { checkFirebaseError(err); }
     };
 
     window.tryUpdate = async (id, data) => {
         try {
             await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', id), data);
             closeModal();
-        } catch (err) {
-            checkFirebaseError(err);
+        } catch (err) { checkFirebaseError(err); closeModal(); }
+    };
+
+    window.tryDelete = async (id) => {
+        try {
+            await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'appointments', id));
             closeModal();
+        } catch (err) { checkFirebaseError(err); closeModal(); }
+    };
+
+    window.adminManageSlot = (appIdStr) => {
+        const app = appointments.find(a => a.id === appIdStr);
+        if(!app) return;
+
+        if(app.status === 'completed') {
+            return showModal("Horário Finalizado", "<p class='text-neutral-400'>Este serviço já foi prestado e o valor contabilizado no caixa.</p>", `<button onclick="closeModal()" class="w-full bg-neutral-800 py-4 rounded-xl font-bold text-white hover:bg-neutral-700">Fechar</button>`);
         }
+
+        const svcNames = app.services.map(id => SERVICES.find(s=>s.id===id)?.name).join(' + ');
+        
+        let body = `
+            <div class="bg-[#0a0a0a] border border-neutral-800 p-5 rounded-xl mb-6 shadow-inner">
+                <div class="flex justify-between items-center border-b border-neutral-800 pb-3 mb-3">
+                    <h4 class="font-black text-3xl text-white">${app.time}</h4>
+                    <span class="bg-neutral-900 text-neutral-400 text-xs px-2 py-1 rounded font-bold tracking-widest uppercase">Cliente</span>
+                </div>
+                <h4 class="font-black text-2xl text-red-500 uppercase mb-1">${app.customerName}</h4>
+                <p class="text-neutral-400 text-sm font-medium mb-3">Serviços: <span class="text-white">${svcNames}</span></p>
+                <div class="inline-block bg-neutral-900 border border-neutral-800 px-4 py-2 rounded-lg">
+                    <p class="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-1">A Receber</p>
+                    <p class="text-green-500 font-black text-xl leading-none">${formatCurrency(app.totalPrice)}</p>
+                </div>
+            </div>
+        `;
+        let btns = '';
+
+        if (app.status === 'booked') {
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'called', calledAt: Date.now()})" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl mb-3 shadow-lg tracking-wide uppercase text-sm">Chamar Cliente (Tolerância 2m)</button>
+                <div class="flex gap-3 w-full">
+                    <button onclick="tryDelete('${app.id}')" class="flex-1 bg-transparent border border-red-900 text-red-500 hover:bg-red-900 hover:text-white font-bold py-3 rounded-xl transition">Desmarcar</button>
+                    <button onclick="closeModal()" class="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 py-3 rounded-xl font-bold transition">Voltar</button>
+                </div>
+            `;
+        } else if (app.status === 'called') {
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'started', startedAt: Date.now()})" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-5 rounded-xl mb-3 shadow-[0_5px_15px_rgba(220,38,38,0.4)] tracking-wider uppercase">O Cliente Sentou! (Iniciar)</button>
+                <div class="flex gap-3 w-full">
+                    <button onclick="tryDelete('${app.id}')" class="flex-[2] bg-transparent border border-neutral-700 text-neutral-500 hover:text-white hover:border-neutral-500 font-bold py-3 rounded-xl transition text-sm">Faltou (Pular Vez)</button>
+                    <button onclick="closeModal()" class="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 py-3 rounded-xl font-bold transition text-sm">Voltar</button>
+                </div>
+            `;
+        } else if (app.status === 'started') {
+            btns = `
+                <button onclick="tryUpdate('${app.id}', {status: 'completed', completedAt: Date.now()})" class="w-full bg-green-700 hover:bg-green-600 text-white font-black py-5 rounded-xl mb-3 shadow-[0_5px_15px_rgba(21,128,61,0.4)] tracking-wider uppercase text-lg">Finalizar Corte & Receber</button>
+                <button onclick="closeModal()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-400 py-3 rounded-xl font-bold transition">Cancelar Ação</button>
+            `;
+        }
+
+        showModal("Gerenciar Horário", body, `<div class="flex flex-col w-full">${btns}</div>`);
     };
 
     window.adminBookSlot = (time) => {
-            // Interface rápida pro admin marcar
-            const body = `
-                <input type="text" id="adm-book-name" placeholder="Nome do Cliente" class="w-full bg-black border border-neutral-700 text-white p-3 rounded-lg mb-3">
-                <div class="space-y-2">
-                    ${SERVICES.map(s => `
-                        <label class="flex items-center gap-3 p-2 border border-neutral-800 rounded bg-neutral-900 cursor-pointer">
-                            <input type="checkbox" value="${s.id}" class="adm-book-svc w-5 h-5 accent-amber-500">
-                            <span class="text-white">${s.name} - ${formatCurrency(s.price)}</span>
-                        </label>
-                    `).join('')}
+        const body = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-neutral-400 mb-1">Nome do Cliente Presencial</label>
+                    <input type="text" id="adm-book-name" placeholder="Digite o nome..." class="w-full bg-[#0a0a0a] border border-neutral-800 text-white p-4 rounded-xl focus:border-red-600 outline-none font-medium">
                 </div>
-            `;
-            const btns = `
-                <button onclick="closeModal()" class="flex-1 bg-neutral-800 text-white py-2 rounded-lg font-bold">Cancelar</button>
-                <button onclick="executeAdminBook('${time}')" class="flex-1 bg-amber-500 text-black py-2 rounded-lg font-black">Agendar</button>
-            `;
-            showModal(`Agendar Encaixe - ${time}`, body, btns);
-        };
+                <div>
+                    <label class="block text-sm font-bold text-neutral-400 mb-2">Serviços que fará</label>
+                    <div class="space-y-2">
+                        ${SERVICES.map(s => `
+                            <label class="flex items-center gap-3 p-3 border border-neutral-800 rounded-xl bg-[#0a0a0a] cursor-pointer hover:border-neutral-600 transition">
+                                <input type="checkbox" value="${s.id}" class="adm-book-svc w-5 h-5 accent-red-600 bg-neutral-900 border-neutral-700 rounded">
+                                <span class="text-white font-bold flex-1">${s.name}</span>
+                                <span class="text-neutral-500 font-medium">${formatCurrency(s.price)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        const btns = `
+            <button onclick="closeModal()" class="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 py-4 rounded-xl font-bold transition">Cancelar</button>
+            <button onclick="executeAdminBook('${time}')" class="flex-[2] bg-white hover:bg-gray-200 text-black py-4 rounded-xl font-black transition shadow-lg">Agendar Encaixe</button>
+        `;
+        showModal(`Encaixe Manual - ${time}`, body, btns);
+    };
 
-        window.executeAdminBook = async (time) => {
+    window.executeAdminBook = async (time) => {
         const name = document.getElementById('adm-book-name').value;
         const checkboxes = document.querySelectorAll('.adm-book-svc:checked');
         const svcs = Array.from(checkboxes).map(c => c.value);
         
-        if(!name || svcs.length === 0) return showModal("Atenção", "Preencha nome e serviço.", `<button onclick="closeModal()" class="w-full bg-amber-500 text-black py-2 rounded">Ok</button>`);
+        if(!name || svcs.length === 0) return showModal("Atenção", "Preencha o nome e selecione no mínimo 1 serviço.", `<button onclick="closeModal()" class="w-full bg-red-600 text-white font-black py-4 rounded-xl">Ok</button>`);
         
         let total = 0;
         svcs.forEach(id => { total += SERVICES.find(s=>s.id===id).price; });
@@ -881,13 +897,9 @@
                 createdAt: Date.now()
             });
             closeModal();
-        } catch (err) {
-            checkFirebaseError(err);
-            closeModal();
-        }
+        } catch (err) { checkFirebaseError(err); closeModal(); }
     };
 
-    // Boot
     window.addEventListener('load', init);
 
 </script>
