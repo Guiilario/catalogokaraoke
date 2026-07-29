@@ -57,7 +57,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -82,8 +82,8 @@
         
         let appointments = [];
         let cashRegisters = [];
-        let currentUser = null; // Para o Admin Firebase
-        let currentClient = JSON.parse(localStorage.getItem('salao_client')) || null; // Para o Cliente
+        let currentUser = null; // Admin logado via Auth
+        let currentClient = JSON.parse(localStorage.getItem('salao_client')) || null; // Cliente Local
         let activeView = 'home';
         let unsubscribeAppointments = null;
         let unsubscribeCash = null;
@@ -146,10 +146,30 @@
             el.value = v;
         };
 
+        window.handleDBError = (err) => {
+            console.error("Database Error:", err);
+            if(err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
+                const rulesHtml = `
+                    <p class="text-white text-sm mb-4">Seu Firebase está bloqueando o acesso porque exige login, mas os clientes agora usam apenas o telefone.</p>
+                    <p class="text-amber-500 font-bold text-sm mb-2">Como Corrigir (Passo a Passo):</p>
+                    <ol class="text-neutral-300 text-xs space-y-2 mb-4 list-decimal pl-4">
+                        <li>Acesse o Console do Firebase e abra seu projeto.</li>
+                        <li>No menu esquerdo, vá em <b>Firestore Database</b>.</li>
+                        <li>Clique na aba superior chamada <b>Regras (Rules)</b>.</li>
+                        <li>Apague tudo que estiver lá e cole o código abaixo:</li>
+                    </ol>
+                    <div class="bg-black p-3 rounded-lg border border-neutral-700 overflow-x-auto relative mb-4">
+                        <pre class="text-green-500 text-xs font-mono">rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}</pre>
+                    </div>
+                    <button onclick="closeModal()" class="w-full bg-amber-500 text-black font-black py-3 rounded-xl mt-2">Ok, vou lá alterar</button>
+                `;
+                showModal("Acesso Bloqueado no Firebase", rulesHtml);
+            }
+        };
+
         setInterval(() => {
             if(activeView !== 'client' && activeView !== 'admin') return;
             
-            // Procura quem está "started" (cortando) ou "called" (chamado) e atualiza os relógios
             appointments.forEach(app => {
                 if(app.status === 'started' && app.startedAt) {
                     const el = document.getElementById(`timer-${app.id}`);
@@ -169,7 +189,6 @@
                         const s = String(remain % 60).padStart(2, '0');
                         el.innerText = `${m}:${s}`;
                         
-                        // Cliente vendo seu próprio banner de Sua Vez
                         if (currentClient && app.clientPhone === currentClient.phone && remain > 0) {
                             const bannerTimer = document.getElementById('your-turn-timer');
                             if(bannerTimer) bannerTimer.innerText = `${m}:${s}`;
@@ -178,13 +197,11 @@
                 }
             });
             
-            // Client Notification Logic (Beeps e Alertas Locais)
             if(activeView === 'client' && currentClient) {
                 const today = window.getToday();
                 const myTodayApps = appointments.filter(a => a.date === today && a.clientPhone === currentClient.phone);
                 
                 myTodayApps.forEach(myApp => {
-                    // Se foi chamado AGORA
                     if(myApp.status === 'called' && lastNotifiedState[myApp.id] !== 'called') {
                         lastNotifiedState[myApp.id] = 'called';
                         window.playBeep('double');
@@ -192,7 +209,6 @@
                         document.getElementById('your-turn-banner').classList.add('flex');
                     }
                     
-                    // Se estiver "booked", verifica quem está na cadeira para dar aviso "Prepare-se"
                     if (myApp.status === 'booked') {
                         const activeApp = appointments.find(a => a.date === today && a.status === 'started');
                         if (activeApp) {
@@ -200,7 +216,6 @@
                             const hasHaircut = activeApp.services.includes('corte') || activeApp.services.includes('barba');
                             const triggerMin = hasHaircut ? 15 : 5;
                             
-                            // Apenas para quem é o próximo (lógica simples: pegar o próximo horário agendado maior q o ativo)
                             const sortedBooked = appointments.filter(a=>a.date === today && a.status === 'booked').sort((a,b) => a.time.localeCompare(b.time));
                             const isNext = sortedBooked.length > 0 && sortedBooked[0].id === myApp.id;
 
@@ -221,49 +236,74 @@
             if(unsubscribeAppointments) unsubscribeAppointments();
             if(unsubscribeCash) unsubscribeCash();
 
-            unsubscribeAppointments = onSnapshot(collection(db, 'salao_agendamentos'), (snap) => {
-                const newApps = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Beep para Admin se surgir agendamento novo
-                if (activeView === 'admin' && appointments.length > 0) {
-                    const added = newApps.length > appointments.length;
-                    if(added) window.playBeep('single');
-                }
-                
-                appointments = newApps;
-                if(activeView === 'client') renderClient();
-                if(activeView === 'admin') renderAdmin();
-            });
+            try {
+                unsubscribeAppointments = onSnapshot(collection(db, 'salao_agendamentos'), (snap) => {
+                    const newApps = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    if (activeView === 'admin' && appointments.length > 0) {
+                        const added = newApps.length > appointments.length;
+                        if(added) window.playBeep('single');
+                    }
+                    
+                    if(activeView === 'client' && currentClient) {
+                        const justFinished = appointments.find(old => old.status === 'started' && newApps.find(n => n.id === old.id)?.status === 'completed');
+                        if(justFinished) {
+                            const today = window.getToday();
+                            const sortedBooked = newApps.filter(a => a.date === today && a.status === 'booked').sort((a,b) => a.time.localeCompare(b.time));
+                            if(sortedBooked.length > 0 && sortedBooked[0].clientPhone === currentClient.phone) {
+                                window.playBeep('double');
+                                showModal("A Cadeira Vaziou!", "<div class='text-center'><p class='text-white mb-4'>O barbeiro finalizou o cliente anterior. Fique atento, você será chamado a qualquer momento!</p><button onclick='closeModal()' class='w-full bg-green-500 text-black font-black py-4 rounded-xl'>Estou Atento</button></div>");
+                            }
+                        }
+                    }
 
-            unsubscribeCash = onSnapshot(collection(db, 'salao_caixa'), (snap) => {
-                cashRegisters = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(activeView === 'admin') renderAdmin();
-            });
+                    appointments = newApps;
+                    if(activeView === 'client') renderClient();
+                    if(activeView === 'admin') renderAdmin();
+                }, (err) => handleDBError(err));
+
+                unsubscribeCash = onSnapshot(collection(db, 'salao_caixa'), (snap) => {
+                    cashRegisters = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    if(activeView === 'admin') renderAdmin();
+                }, (err) => handleDBError(err));
+            } catch(e) {
+                handleDBError(e);
+            }
         };
 
         onAuthStateChanged(auth, (u) => {
             currentUser = u;
-            if(u) { listenToData(); }
+            if(u && u.email) { 
+                listenToData(); 
+                nav('admin');
+            }
         });
 
         window.nav = (view) => { activeView = view; renderApp(); };
 
-        window.clientLogin = async (e) => {
+        window.clientEnter = async (e) => {
             e.preventDefault();
             const name = document.getElementById('client-name').value.trim();
             const phone = document.getElementById('client-phone').value.trim();
+            
             if(name.length < 2 || phone.length < 14) {
                 return showModal("Atenção", "<p class='text-white'>Preencha um nome e um WhatsApp válido.</p>");
             }
             
-            // Salvar no banco (mesmo que exista, atualiza o nome)
             try {
+                // Tenta logar anonimamente caso o Firebase tenha a autenticação anônima ligada (Bypass de algumas regras)
+                try { await signInAnonymously(auth); } catch(e) {}
+
+                // Salva o cliente e prossegue
                 await setDoc(doc(collection(db, 'salao_clientes'), phone.replace(/\D/g, '')), { name, phone, lastAccess: Date.now() });
+                
                 currentClient = { name, phone };
                 localStorage.setItem('salao_client', JSON.stringify(currentClient));
-                listenToData(); // Start listening as client
+                listenToData();
                 nav('client');
-            } catch (err) { console.error(err); showModal("Erro", "Falha de conexão."); }
+            } catch (err) { 
+                handleDBError(err);
+            }
         };
         
         window.clientLogout = () => {
@@ -278,8 +318,10 @@
             const pass = document.getElementById('admin-pass').value;
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                nav('admin');
-            } catch (err) { showModal("Erro de Acesso", "<p class='text-red-500'>Credenciais inválidas ou erro de permissão.</p>"); }
+                // Nav is handled by onAuthStateChanged
+            } catch (err) { 
+                showModal("Acesso Negado", "<p class='text-red-500 font-bold mb-2'>Senha Incorreta ou E-mail Inválido.</p><p class='text-white text-sm'>Verifique suas credenciais do Firebase.</p>"); 
+            }
         };
         
         window.doAdminLogout = async () => {
@@ -292,7 +334,7 @@
             const idx = tempSelectedServices.indexOf(id);
             if(idx > -1) tempSelectedServices.splice(idx, 1);
             else tempSelectedServices.push(id);
-            // Atualiza UI se estivermos no Modal
+            
             document.querySelectorAll('.srv-btn').forEach(btn => {
                 const sId = btn.getAttribute('data-id');
                 if(tempSelectedServices.includes(sId)) {
@@ -343,21 +385,20 @@
                     createdAt: Date.now()
                 });
                 closeModal();
-            } catch (err) { console.error(err); showModal("Erro", "Falha ao agendar."); }
+            } catch (err) { handleDBError(err); }
         };
 
         window.tryUpdate = async (id, data) => {
-            try { await updateDoc(doc(db, 'salao_agendamentos', id), data); closeModal(); } catch(e){}
+            try { await updateDoc(doc(db, 'salao_agendamentos', id), data); closeModal(); } catch(e){ handleDBError(e); }
         };
         window.tryDelete = async (id) => {
-            try { await deleteDoc(doc(db, 'salao_agendamentos', id)); closeModal(); } catch(e){}
+            try { await deleteDoc(doc(db, 'salao_agendamentos', id)); closeModal(); } catch(e){ handleDBError(e); }
         };
 
         window.adminManageSlot = (appIdStr, dateStr) => {
             const app = appointments.find(a => a.id === appIdStr);
             if(!app) return;
             
-            // Verifica se tem alguém na cadeira neste exato momento (e garante que não é o próprio)
             const activeCut = appointments.find(a => a.date === dateStr && a.status === 'started' && a.id !== app.id);
 
             if(app.status === 'completed') {
@@ -383,7 +424,7 @@
                 `;
             } else if (app.status === 'called') {
                 let startBtn = activeCut 
-                    ? `<button onclick="alert('Existe um corte em andamento. Finalize-o primeiro!')" class="w-full bg-neutral-800 text-neutral-500 font-black py-4 rounded-xl mb-3 border border-neutral-700 cursor-not-allowed">Cadeira Ocupada</button>`
+                    ? `<button onclick="alert('Existe um corte em andamento. Finalize-o primeiro!')" class="w-full bg-neutral-800 text-neutral-500 font-black py-4 rounded-xl mb-3 border border-neutral-700 cursor-not-allowed">Cadeira Ocupada no Momento</button>`
                     : `<button onclick="tryUpdate('${app.id}', {status: 'started', startedAt: Date.now()})" class="w-full bg-red-600 text-white font-black py-4 rounded-xl mb-3 flash-red">O Cliente Sentou! (Iniciar Tempo)</button>`;
                 
                 btns = `
@@ -413,7 +454,7 @@
             try {
                 await addDoc(collection(db, 'salao_caixa'), { date: dateStr, initialBalance: val, status: 'open', openedAt: Date.now() });
                 closeModal();
-            } catch(e) {}
+            } catch(e) { handleDBError(e); }
         };
 
         window.closeDayAdmin = (cashId, dateStr, faturamento, total) => {
@@ -428,7 +469,7 @@
             `;
             showModal(`Encerrar ${dateStr.split('-').reverse().join('/')}`, html);
         };
-        window.tryUpdateBox = async (id, data) => { try { await updateDoc(doc(db, 'salao_caixa', id), data); closeModal(); } catch(e){} };
+        window.tryUpdateBox = async (id, data) => { try { await updateDoc(doc(db, 'salao_caixa', id), data); closeModal(); } catch(e){ handleDBError(e); } };
 
         window.renderApp = () => {
             const appDiv = document.getElementById('app');
@@ -438,7 +479,6 @@
             else if (activeView === 'adminLogin') appDiv.innerHTML = renderAdminLogin();
             else if (activeView === 'admin') appDiv.innerHTML = buildAdminUI();
             
-            // Atrela listeners
             if(activeView === 'client') {
                 document.getElementById('client-date').addEventListener('change', renderClient);
                 renderClient();
@@ -458,7 +498,7 @@
                 <p class="text-neutral-500 tracking-widest text-sm uppercase mb-12">Alemoa</p>
                 
                 <div class="flex flex-col w-full max-w-sm gap-4">
-                    <button onclick="nav('clientLogin')" class="bg-amber-500 text-black font-black py-5 px-6 rounded-2xl hover:-translate-y-1 transition transform uppercase tracking-wider">AGENDAR CORTE</button>
+                    <button onclick="nav('clientLogin')" class="bg-amber-500 text-black font-black py-5 px-6 rounded-2xl hover:-translate-y-1 transition transform uppercase tracking-wider">Agendar Corte</button>
                     <button onclick="nav('adminLogin')" class="bg-transparent border border-neutral-800 text-neutral-500 font-bold py-4 px-6 rounded-2xl hover:text-white transition">ÁREA DO BARBEIRO</button>
                 </div>
             </div>
@@ -466,9 +506,9 @@
 
         const renderClientLogin = () => `
             <div class="max-w-md mx-auto mt-10 bg-[#111] p-8 rounded-3xl border border-neutral-800 shadow-2xl animate-fade-in">
-                <h2 class="text-3xl font-black text-white mb-2 uppercase">Bem-vindo</h2>
-                <p class="text-neutral-500 text-sm mb-8">Informe seus dados para acessar a agenda.</p>
-                <form onsubmit="clientLogin(event)" class="space-y-5">
+                <h2 class="text-3xl font-black text-white mb-2 uppercase">Agendar Corte</h2>
+                <p class="text-neutral-500 text-sm mb-8">Digite seu nome e número para ver os horários disponíveis na agenda.</p>
+                <form onsubmit="clientEnter(event)" class="space-y-5">
                     <div>
                         <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Seu Nome</label>
                         <input type="text" id="client-name" placeholder="Como gosta de ser chamado" class="w-full bg-black border border-neutral-800 rounded-xl p-4 text-white focus:border-amber-500 outline-none" required>
@@ -477,7 +517,7 @@
                         <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">WhatsApp</label>
                         <input type="tel" id="client-phone" placeholder="(13) 90000-0000" oninput="formatPhone(this)" class="w-full bg-black border border-neutral-800 rounded-xl p-4 text-white focus:border-amber-500 outline-none" required>
                     </div>
-                    <button type="submit" class="w-full bg-amber-500 text-black font-black py-4 rounded-xl mt-4 uppercase tracking-wider">Entrar / Cadastrar</button>
+                    <button type="submit" class="w-full bg-amber-500 text-black font-black py-4 rounded-xl mt-4 uppercase tracking-wider hover:bg-amber-400 transition">Ver Agenda</button>
                 </form>
                 <button onclick="nav('home')" class="w-full text-neutral-600 font-bold mt-6 text-sm hover:text-white transition">Voltar</button>
             </div>
@@ -486,7 +526,7 @@
         const renderAdminLogin = () => `
             <div class="max-w-md mx-auto mt-10 bg-[#111] p-8 rounded-3xl border border-neutral-800 shadow-2xl animate-fade-in">
                 <h2 class="text-3xl font-black text-white mb-2 uppercase">Área Restrita</h2>
-                <p class="text-neutral-500 text-sm mb-8">Administração do salão.</p>
+                <p class="text-neutral-500 text-sm mb-8">Login do Administrador (E-mail e Senha).</p>
                 <form onsubmit="adminLogin(event)" class="space-y-5">
                     <input type="email" id="admin-email" placeholder="E-mail" class="w-full bg-black border border-neutral-800 rounded-xl p-4 text-white focus:border-neutral-500 outline-none" required>
                     <input type="password" id="admin-pass" placeholder="Senha" class="w-full bg-black border border-neutral-800 rounded-xl p-4 text-white focus:border-neutral-500 outline-none" required>
@@ -549,7 +589,6 @@
                         <span id="timer-${app.id}" class="text-xs font-mono bg-black/40 px-2 py-0.5 rounded mt-1">00:00</span>
                     </div>`;
                 } else {
-                    // Booked
                     const isMine = app.clientPhone === currentClient.phone;
                     if(isMine) {
                         html += `<div class="bg-amber-500 text-black font-black py-4 rounded-xl text-center flex flex-col justify-center items-center relative overflow-hidden"><span class="text-lg">${time}</span><span class="text-[9px] uppercase tracking-widest mt-1">Seu Horário</span></div>`;
@@ -560,8 +599,7 @@
             });
             html += `</div>`;
             
-            // Legenda
-            html += `<div class="flex justify-center gap-4 mt-6 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+            html += `<div class="flex justify-center gap-4 mt-6 text-[10px] font-bold uppercase tracking-widest text-neutral-500 flex-wrap">
                 <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500"></span> Livre</div>
                 <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Agendado</div>
                 <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-600 pulse-orange border border-orange-400"></span> Cortando</div>
@@ -570,7 +608,6 @@
             
             gridEl.innerHTML = html;
 
-            // My Apps
             const myApps = appointments.filter(a => a.clientPhone === currentClient.phone && a.status !== 'completed').sort((a,b)=>a.date.localeCompare(b.date));
             const myAppsEl = document.getElementById('client-my-apps');
             if(myApps.length > 0) {
@@ -619,7 +656,6 @@
             const dayApps = appointments.filter(a => a.date === dateStr);
             const caixaForDay = cashRegisters.find(c => c.date === dateStr);
             
-            // Calculos Caixa
             const completedApps = dayApps.filter(a => a.status === 'completed');
             const faturamento = completedApps.reduce((sum, a) => sum + (a.totalPrice||0), 0);
             const totalEmCaixa = caixaForDay ? (caixaForDay.initialBalance + faturamento) : 0;
@@ -687,7 +723,6 @@
             document.getElementById('admin-grid').innerHTML = html;
         };
 
-        // Initialize App View Check
         if(currentClient) {
             listenToData();
             nav('client');
