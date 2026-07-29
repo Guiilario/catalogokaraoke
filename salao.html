@@ -1,13 +1,3 @@
-Aqui está o código atualizado. Mantive exatamente toda a estrutura e as funções que já estavam funcionando, aplicando apenas os ajustes solicitados:
-
-1. **Trava de Caixa Único:** O barbeiro não consegue abrir um novo caixa em nenhuma data enquanto houver outro caixa com status `"aberto"`.
-2. **Limite de 1 Agendamento por Dia:** O cliente que já possui um horário ativo no dia não consegue selecionar novos horários livres.
-3. **Horário Desmarcado (Bloqueado):** Quando um cliente desmarca, a vaga vira status `"desmarcado"` (fica indisponível na cor cinza), impedindo que outros furem a fila.
-4. **Adiantar Corte:** Na visão do Administrador, ao clicar em um horário agendado, aparece o botão **"Adiantar Corte (Puxar Fila)"**, que move o cliente automaticamente para o horário "desmarcado" ou livre anterior mais próximo.
-
-Basta copiar e substituir todo o conteúdo do seu arquivo `index.html`:
-
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
