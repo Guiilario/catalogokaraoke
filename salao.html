@@ -573,12 +573,6 @@
             }
 
             const dayApps = appointments.filter(a => a.date === dateStr);
-            
-            const gridEl = document.getElementById('client-grid');
-            if(dayOfWeek === 0 || dayOfWeek === 1) {
-                gridEl.innerHTML = `<div class="text-center py-10 text-neutral-500 font-bold bg-neutral-900 rounded-xl">O salão não abre de Domingo e Segunda.</div>`;
-                return;
-            }
 
             let html = `<div class="grid grid-cols-3 sm:grid-cols-4 gap-3">`;
             TIME_SLOTS.forEach(time => {
